@@ -1,7 +1,32 @@
 Revision history for Perl extension ExtUtils::ModuleMaker.
 
-0.204 Wed May 29 2002
-	- eumm swapped 'our' variables for 'use vars' to work with perl older than 5.6.0
+0.32  July 2002
+	- Complete rewrite from the ground up for the 0.3xxx line
+	- Created by ExtUtils::ModuleMaker 0.202
+	- Now object oriented for customizability
+	- Licenses in two new modules:
+		ExtUtils::ModuleMaker::Licenses::Standard
+		ExtUtils::ModuleMaker::Licenses::Local
+	- Customize for local environment by subclassing, example in
+		ExtUtils::ModuleMaker::SecondStyle
+	- Tests now use Test::More
+	- New interactive script 'modulemaker'
+	- Removed old scripts 'newmodule' and 'eumm'
+	- Old functions are deprecated, but still here for now
+		Quick_Module
+		Generate_Module_Files
+	- Fixed missing VERSION_FROM in Makefile.PL
+	- pod and new method can now be optional in extra modules
+		and different in each module
+
+--------------------------------------------------------------
+
+0.204_01 Fri May 31 2002 - joshua@cpan.org
+	- Renamed eumm to the more memorable newmodule
+	- Documented newmodule
+	- More testing. We use Test::More now
+	- Verbose prints to STDOUT not STDERR
+	- Minor internal changes
 
 0.202_02 Wed May 29 2002 - joshua@cpan.org
 	- New feature: create compact base directories

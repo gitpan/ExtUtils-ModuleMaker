@@ -1,56 +1,61 @@
-#!/usr/local/bin/perl
 
-package ExtUtils::ModuleMaker::Licenses;
+package ExtUtils::ModuleMaker::Licenses::Standard;
 use strict;
 
 BEGIN {
 	use Exporter ();
-	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK);
-	$VERSION = 0.202;
-	@ISA		= qw (Exporter);
-	@EXPORT		= qw (&Get_License);
-	@EXPORT_OK	= qw ();
+	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+	$VERSION     = 0.312_29;
+	@ISA         = qw (Exporter);
+	#Give a hoot don't pollute, do not export more than needed by default
+	@EXPORT      = qw (&Get_Standard_License &Verify_Standard_License);
+	@EXPORT_OK   = qw ();
+	%EXPORT_TAGS = ();
 }
 
 ########################################### main pod documentation begin ##
+# Below is the stub of documentation for your module. You better edit it!
 
 =head1 NAME
 
-ExtUtils::ModuleMaker::Licenses - Get the License for a new module
+ExtUtils::ModuleMaker::Licenses::Standard - Templates for the module's License/Copyright
 
 =head1 SYNOPSIS
 
-A supporting player for ExtUtils::ModuleMaker to get the COPYRIGHT section
-of pod and the contents of the LICENSE file.
+  use ExtUtils::ModuleMaker::Licenses::Standard;
+  blah blah blah
 
 =head1 DESCRIPTION
 
-=head1 USAGE
+This module holds the licence and copyright information for use by ExtUtils::ModuleMaker.
+If you want to add a local license it should not be done here but in the module
+ExtUtils::ModuleMaker::Licenses::Local.
 
-Should only be called from ExtUtils::ModuleMaker.
+=head1 USAGE
 
 =head1 BUGS
 
 =head1 SUPPORT
 
-Send email to modulemaker@PlatypiVentures.com.
-
 =head1 AUTHOR
 
-    R. Geoffrey Avery
-    CPAN ID: RGEOFFREY
-    modulemaker@PlatypiVentures.com
-    http://www.PlatypiVentures.com/perl/modules/ModuleMaker.shtml
+	R. Geoffrey Avery
+	CPAN ID: RGEOFFREY
+	modulemaker@PlatypiVentures.com
+	http://www.PlatypiVentures.com/perl/modules/ModuleMaker.shtml
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001 R. Geoffrey Avery. All rights reserved.
+Copyright (c) 2002 R. Geoffrey Avery. All rights reserved.
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
 
+The full text of the license can be found in the
+LICENSE file included with this module.
+
 =head1 SEE ALSO
 
-ExtUtils::ModuleMaker
+perl(1).
 
 =head1 PUBLIC METHODS
 
@@ -61,99 +66,208 @@ These are how you should interact with this module.
 
 ############################################# main pod documentation end ##
 
- 
-################################################ subroutine header begin ##
+my %licenses =
+			(
+			 perl			=> { function => \&License_Perl,
+								 fullname =>'Same terms as Perl itself',
+							   },
 
-=head2 Get_License
+			 apache			=> { function => \&License_Apache_1_1,
+								 fullname => ''
+							   },
+			 apache_1_1		=> { function => \&License_Apache_1_1,
+								 fullname => 'Apache Software License (1.1)'
+							   },
+			 artistic		=> { function => \&License_Artistic,
+								 fullname => 'Artistic License'
+							   },
+			 artisticA		=> { function => \&License_Artistic_w_Aggregation,
+								 fullname => 'Artistic License w/ Aggregation'
+							   },
+			 r_bsd			=> { function => \&License_r_BSD,
+								 fullname => 'BSD License(Raw)'
+							   },
+			 bsd			=> { function => \&License_BSD,
+								 fullname => 'BSD License'
+							   },
+			 gpl			=> { function => \&License_GPL_2,
+								 fullname => ''
+							   },
+			 gpl_2			=> { function => \&License_GPL_2,
+								 fullname => 'GPL - General Public License (2)'
+							   },
+			 ibm			=> { function => \&License_IBM_1_0,
+								 fullname => ''
+							   },
+			 ibm_1_0		=> { function => \&License_IBM_1_0,
+								 fullname => 'IBM Public License Version (1.0)'
+							   },
+			 intel			=> { function => \&License_Intel,
+								 fullname => 'Intel (BSD+)'
+							   },
+			 jabber			=> { function => \&License_Jabber_1_0,
+								 fullname => ''
+							   },
+			 jabber_1_0		=> { function => \&License_Jabber_1_0,
+								 fullname => 'Jabber (1.0)'
+							   },
+			 lgpl			=> { function => \&License_LGPL_2_1,
+								 fullname => ''
+							   },
+			 lgpl_2_1		=> { function => \&License_LGPL_2_1,
+								 fullname => 'LGPL - GNU Lesser General Public License (2.1)'
+							   },
+			 mit			=> { function => \&License_MIT,
+								 fullname => 'MIT License'
+							   },
+			 mitre			=> { function => \&License_MITRE,
+								 fullname => 'CVW - MITRE Collaborative Virtual Workspace'
+							   },#mitre includes gpl 2.0 and mozilla 1.0
+			 mozilla		=> { function => \&License_Mozilla_1_1,
+								 fullname => ''
+							   },
+			 mozilla_1_1	=> { function => \&License_Mozilla_1_1,
+								 fullname => 'Mozilla Public License (1.1)'
+							   },
+			 mozilla_1_0	=> { function => \&License_Mozilla_1_0,
+								 fullname => 'Mozilla Public License (1.0)'
+							   },
+			 mpl			=> { function => \&License_Mozilla_1_1,
+								 fullname => ''
+							   },
+			 mpl_1_1		=> { function => \&License_Mozilla_1_1,
+								 fullname => ''
+							   },
+			 mpl_1_0		=> { function => \&License_Mozilla_1_0,
+								 fullname => ''
+							   },
+			 nethack		=> { function => \&License_Nethack,
+								 fullname => 'Nethack General Public License'
+							   },
+			 nokia			=> { function => \&License_Nokia_1_0a,
+								 fullname => ''
+							   },
+			 nokos			=> { function => \&License_Nokia_1_0a,
+								 fullname => ''
+							   },
+			 nokia_1_0a		=> { function => \&License_Nokia_1_0a,
+								 fullname => 'Nokia Open Source License(1.0a)'
+							   },
+			 nokos_1_0a		=> { function => \&License_Nokia_1_0a,
+								 fullname => ''
+							   },
+			 python			=> { function => \&License_Python,
+								 fullname => 'Python License'
+							   },
+			 q				=> { function => \&License_Q_1_0,
+								 fullname => ''
+							   },
+			 q_1_0			=> { function => \&License_Q_1_0,
+								 fullname => 'Q Public License (1.0)'
+							   },
+			 ricoh			=> { function => \&License_Ricoh_1_0,
+								 fullname => ''
+							   },
+			 ricoh_1_0		=> { function => \&License_Ricoh_1_0,
+								 fullname => 'Ricoh Source Code Public License (1.0)'
+							   },
+			 sun			=> { function => \&License_Sun,
+								 fullname => ''
+							   },
+			 sissl			=> { function => \&License_Sun,
+								 fullname => 'Sun Internet Standards Source License'
+							   },
+			 sleepycat		=> { function => \&License_Sleepycat,
+								 fullname => 'The Sleepycat License'
+							   },
+			 vovida			=> { function => \&License_Vovida_1_0,
+								 fullname => ''
+							   },
+			 vovida_1_0		=> { function => \&License_Vovida_1_0,
+								 fullname => 'Vovida Software License (1.0)'
+							   },
+			 zlib			=> { function => \&License_ZLIB,
+								 fullname => 'zlib/libpng License'
+							   },
+			 libpng			=> { function => \&License_ZLIB,
+								 fullname =>
+							   },
+#not yet installed
+#			 python_2_1_1	=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 commonpublic	=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 applepublic	=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 xnet			=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 sunpublic		=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 eiffel			=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 w3c			=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 motosoto		=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 opengroup		=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 zopepublic		=> { function => undef,
+#								 fullname => ''
+#							   },
+#			 u_illinois_ncsa=> { function => undef,
+#								 fullname => ''
+#							   },
+			);
 
- Usage     : 
- Purpose   : 
- Returns   : 
- Argument  :
-			 $p_module_data = text for the LICENSE file
- Throws    : 
- Comments  : 
-           : 
-
-See Also   : 
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Get_License
+sub Get_Standard_License
 {
-	my ($p_module_data) = @_;
+	my ($choice) = @_;
 
-	my %callbacks = (
-					 custom		=> \&Custom_Licenses,
-					 apache		=> \&License_Apache_1_1,
-					 apache_1_1	=> \&License_Apache_1_1,
-					 artistic	=> \&License_Artistic,
-					 bsd		=> \&License_BSD,
-					 gpl		=> \&License_GPL_2,
-					 gpl_2		=> \&License_GPL_2,
-					 ibm		=> \&License_IBM_1_0,
-					 ibm_1_0	=> \&License_IBM_1_0,
-					 intel		=> \&License_Intel,
-					 jabber		=> \&License_Jabber_1_0,
-					 jabber_1_0	=> \&License_Jabber_1_0,
-					 lgpl		=> \&License_LGPL_2_1,
-					 lgpl_2_1	=> \&License_LGPL_2_1,
-					 mit		=> \&License_MIT,
-					 mitre		=> \&License_MITRE,
-					 mozilla	=> \&License_Mozilla_1_1,
-					 mozilla_1_1=> \&License_Mozilla_1_1,
-					 mozilla_1_0=> \&License_Mozilla_1_0,
-					 mpl		=> \&License_Mozilla_1_1,
-					 mpl_1_1	=> \&License_Mozilla_1_1,
-					 mpl_1_0	=> \&License_Mozilla_1_0,
-					 nethack	=> \&License_Nethack,
-					 nokia		=> \&License_Nokia_1_0a,
-					 nokos		=> \&License_Nokia_1_0a,
-					 nokia_1_0a	=> \&License_Nokia_1_0a,
-					 nokos_1_0a	=> \&License_Nokia_1_0a,
-					 python		=> \&License_Python,
-					 perl		=> \&License_Perl,
-					 q			=> \&License_Q_1_0,
-					 q_1_0		=> \&License_Q_1_0,
-					 ricoh		=> \&License_Ricoh_1_0,
-					 ricoh_1_0	=> \&License_Ricoh_1_0,
-					 sun		=> \&License_Sun,
-					 sissl		=> \&License_Sun,
-					 sleepycat	=> \&License_Sleepycat,
-					 vovida		=> \&License_Vovida_1_0,
-					 vovida_1_0	=> \&License_Vovida_1_0,
-					 zlib		=> \&License_ZLIB,
-					 libpng		=> \&License_ZLIB
-					);
-
-	$p_module_data->{'LICENSE'} = lc ($p_module_data->{'LICENSE'}) || 'perl';
-	unless (exists $callbacks{$p_module_data->{'LICENSE'}}) {
-		print "Using Default value for {'LICENSE'}\n";
-		$p_module_data->{'LICENSE'} = 'perl' ;
-	}
-
-	$callbacks{$p_module_data->{'LICENSE'}}->($p_module_data);
-
-	$p_module_data->{'COPYRIGHT'} =
-		'Copyright (c) ' . (1900 + (localtime ())[5]) .
-		" $p_module_data->{'AUTHOR'}{'NAME'}. All rights reserved.\n" .
-		$p_module_data->{'COPYRIGHT'};
+	$choice = lc ($choice);
+	return ($licenses{$choice}{function}) if (exists $licenses{$choice});
+	return ();
 }
 
-########################################### main pod documentation begin ##
+sub Verify_Standard_License
+{
+	my ($choice) = @_;
+	return (exists $licenses{lc ($choice)});
+}
 
-=head1 PRIVATE METHODS
+sub interact
+{
+	my ($class) = @_;
+	return (bless ({map { ($licenses{$_}{fullname})
+							? ($_ => $licenses{$_}{fullname})
+							: ()
+						} keys (%licenses)
+				   }, ref ($class) || $class));
+}
 
-Each private function/method is described here.
-These methods and functions are considered private and are intended for
-internal use by this module. They are B<not> considered part of the public
-interface and are described here for documentation purposes only.
-
-=cut
-
-############################################# main pod documentation end ##
+sub Display_License
+{
+	my ($self, $choice) = @_;
+	my $p_license = Get_Standard_License ($choice);
+	return (join ("\n\n",
+				  "=====================================================================",
+				  "=====================================================================",
+				  $p_license->{LICENSETEXT},
+				  "=====================================================================",
+				  "=====================================================================",
+				  $p_license->{COPYRIGHT},
+				  "=====================================================================",
+				  "=====================================================================",
+				 ));
+}
 
 ################################################ subroutine header begin ##
 
@@ -167,9 +281,9 @@ interface and are described here for documentation purposes only.
 
 sub License_Apache_1_1
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Apache Software License (Version 1.1)
@@ -178,7 +292,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Apache Software License
 Version 1.1
 
@@ -236,6 +350,7 @@ at the National Center for Supercomputing Applications, University of Illinois,
 Urbana-Champaign.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -250,9 +365,9 @@ EOFLICENSETEXT
 
 sub License_Artistic
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The Artistic License
@@ -261,7 +376,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The Artistic License
 
 Preamble
@@ -366,11 +481,139 @@ PURPOSE.
 The End
 EOFLICENSETEXT
 
+	return (\%license);
+}
+
+sub License_Artistic_w_Aggregation
+{
+	my %license;
+
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
+This program is free software licensed under the...
+
+	The Artistic License (with Aggregation clause)
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+EOFCOPYRIGHT
+
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
+The Artistic License
+
+Preamble
+
+The intent of this document is to state the conditions under which a Package
+may be copied, such that the Copyright Holder maintains some semblance of
+artistic control over the development of the package, while giving the users of the
+package the right to use and distribute the Package in a more-or-less customary
+fashion, plus the right to make reasonable modifications.
+
+Definitions:
+
+-    "Package" refers to the collection of files distributed by the Copyright
+     Holder, and derivatives of that collection of files created through textual
+     modification. 
+-    "Standard Version" refers to such a Package if it has not been modified,
+     or has been modified in accordance with the wishes of the Copyright
+     Holder. 
+-    "Copyright Holder" is whoever is named in the copyright or copyrights for
+     the package. 
+-    "You" is you, if you're thinking about copying or distributing this Package.
+-    "Reasonable copying fee" is whatever you can justify on the basis of
+     media cost, duplication charges, time of people involved, and so on. (You
+     will not be required to justify it to the Copyright Holder, but only to the
+     computing community at large as a market that must bear the fee.) 
+-    "Freely Available" means that no fee is charged for the item itself, though
+     there may be fees involved in handling the item. It also means that
+     recipients of the item may redistribute it under the same conditions they
+     received it. 
+
+1. You may make and give away verbatim copies of the source form of the
+Standard Version of this Package without restriction, provided that you duplicate
+all of the original copyright notices and associated disclaimers.
+
+2. You may apply bug fixes, portability fixes and other modifications derived from
+the Public Domain or from the Copyright Holder. A Package modified in such a
+way shall still be considered the Standard Version.
+
+3. You may otherwise modify your copy of this Package in any way, provided
+that you insert a prominent notice in each changed file stating how and when
+you changed that file, and provided that you do at least ONE of the following:
+
+     a) place your modifications in the Public Domain or otherwise
+     make them Freely Available, such as by posting said modifications
+     to Usenet or an equivalent medium, or placing the modifications on
+     a major archive site such as ftp.uu.net, or by allowing the
+     Copyright Holder to include your modifications in the Standard
+     Version of the Package.
+
+     b) use the modified Package only within your corporation or
+     organization.
+
+     c) rename any non-standard executables so the names do not
+     conflict with standard executables, which must also be provided,
+     and provide a separate manual page for each non-standard
+     executable that clearly documents how it differs from the Standard
+     Version.
+
+     d) make other distribution arrangements with the Copyright Holder.
+
+4. You may distribute the programs of this Package in object code or executable
+form, provided that you do at least ONE of the following:
+
+     a) distribute a Standard Version of the executables and library
+     files, together with instructions (in the manual page or equivalent)
+     on where to get the Standard Version.
+
+     b) accompany the distribution with the machine-readable source of
+     the Package with your modifications.
+
+     c) accompany any non-standard executables with their
+     corresponding Standard Version executables, giving the
+     non-standard executables non-standard names, and clearly
+     documenting the differences in manual pages (or equivalent),
+     together with instructions on where to get the Standard Version.
+
+     d) make other distribution arrangements with the Copyright Holder.
+
+5. You may charge a reasonable copying fee for any distribution of this Package.
+You may charge any fee you choose for support of this Package. You may not
+charge a fee for this Package itself. However, you may distribute this Package in
+aggregate with other (possibly commercial) programs as part of a larger
+(possibly commercial) software distribution provided that you do not advertise
+this Package as a product of your own.
+
+6. The scripts and library files supplied as input to or produced as output from
+the programs of this Package do not automatically fall under the copyright of this
+Package, but belong to whomever generated them, and may be sold
+commercially, and may be aggregated with this Package.
+
+7. C or perl subroutines supplied by you and linked into this Package shall not
+be considered part of this Package.
+
+8. Aggregation of this Package with a commercial distribution is always permitted
+provided that the use of this Package is embedded; that is, when no overt attempt
+is made to make this Package's interfaces visible to the end user of the
+commercial distribution. Such use shall not be construed as a distribution of
+this Package.
+
+9. The name of the Copyright Holder may not be used to endorse or promote
+products derived from this software without specific prior written permission.
+
+10. THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.
+
+The End
+EOFLICENSETEXT
+
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
 
-=head2 License_BSD
+=head2 License_r_BSD
 
  Purpose   : Get the copyright pod text and LICENSE file text for this license
 
@@ -378,11 +621,11 @@ EOFLICENSETEXT
 
 ################################################## subroutine header end ##
 
-sub License_BSD
+sub License_r_BSD
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The BSD License
@@ -391,7 +634,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The BSD License
 
      The following is a BSD license template. To generate
@@ -448,6 +691,67 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 EOFLICENSETEXT
 
+	return (\%license);
+}
+
+################################################ subroutine header begin ##
+
+=head2 License_BSD
+
+ Purpose   : Get the copyright pod text and LICENSE file text for this license
+
+=cut
+
+################################################## subroutine header end ##
+
+sub License_BSD
+{
+	my %license;
+
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
+This program is free software licensed under the...
+
+	The BSD License
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+EOFCOPYRIGHT
+
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
+The BSD License
+
+
+Copyright (c) ###year###, ###owner###
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+     Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer. 
+     Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution. 
+     Neither the name of the ###organization### nor the names of its
+     contributors may be used to endorse or promote products derived from
+     this software without specific prior written permission. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+EOFLICENSETEXT
+
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -462,9 +766,9 @@ EOFLICENSETEXT
 
 sub License_GPL_2
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The General Public License (GPL)
@@ -474,7 +778,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The General Public License (GPL)
 Version 2, June 1991
 
@@ -737,6 +1041,7 @@ BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 END OF TERMS AND CONDITIONS
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -751,9 +1056,9 @@ EOFLICENSETEXT
 
 sub License_IBM_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	IBM Public License Version (1.0)
@@ -762,7 +1067,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 IBM Public License Version (1.0)
 
 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF
@@ -976,6 +1281,7 @@ after the cause of action arose. Each party waives its rights to a jury trial in
 resulting litigation.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -990,9 +1296,9 @@ EOFLICENSETEXT
 
 sub License_Intel
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The Intel Open Source License for CDSA/CSSM Implementation
@@ -1002,7 +1308,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The Intel Open Source License for CDSA/CSSM Implementation
 (BSD License with Export Notice)
 
@@ -1044,6 +1350,7 @@ Korea, Iran, Syria, Sudan, Afghanistan and any other country to which the U.S.
 has embargoed goods and services.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -1058,9 +1365,9 @@ EOFLICENSETEXT
 
 sub License_Jabber_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Jabber Open Source License (Version 1.0)
@@ -1069,7 +1376,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Jabber Open Source License (Version 1.0)
 
 This Jabber Open Source License (the "License")
@@ -1753,6 +2060,7 @@ for their suggestions and support of Jabber.
 Modifications:
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -1767,9 +2075,9 @@ EOFLICENSETEXT
 
 sub License_LGPL_2_1
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The GNU Lesser General Public License (LGPL)
@@ -1779,7 +2087,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The GNU Lesser General Public License (LGPL)
 Version 2.1, February 1999
 
@@ -2317,6 +2625,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 END OF TERMS AND CONDITIONS
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -2331,9 +2640,9 @@ EOFLICENSETEXT
 
 sub License_MIT
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The MIT License
@@ -2342,7 +2651,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The MIT License
 
 Copyright (c) <year> <copyright holders>
@@ -2373,6 +2682,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -2387,9 +2697,9 @@ EOFLICENSETEXT
 
 sub License_MITRE
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	MITRE Collaborative Virtual Workspace License (CVW License)
@@ -2398,7 +2708,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 MITRE Collaborative Virtual Workspace License (CVW License)
 
    Collaborative Virtual Workspace License (CVW)
@@ -3269,6 +3579,7 @@ Reserved.
 Contributor(s): ______________________________________.''
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -3283,9 +3594,9 @@ EOFLICENSETEXT
 
 sub License_Mozilla_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Mozilla Public License (Version 1.0)
@@ -3294,7 +3605,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Mozilla Public License (Version 1.0)
 
 1. Definitions. 
@@ -3746,6 +4057,7 @@ EXHIBIT A.
      ______________________________________." 
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -3760,9 +4072,9 @@ EOFLICENSETEXT
 
 sub License_Mozilla_1_1
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Mozilla Public License 1.1 (MPL 1.1)
@@ -3771,7 +4083,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Mozilla Public License 1.1 (MPL 1.1)
 
 1. Definitions. 
@@ -4355,6 +4667,7 @@ EXHIBIT A -Mozilla Public License.
      Code Source Code for Your Modifications.] 
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -4369,9 +4682,9 @@ EOFLICENSETEXT
 
 sub License_Nethack
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Nethack General Public License
@@ -4380,7 +4693,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Nethack General Public License
 
    Copyright (c) 1989 M. Stephenson 
@@ -4513,6 +4826,7 @@ share NetHack, but don't try to stop anyone else
 from sharing it farther.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -4527,9 +4841,9 @@ EOFLICENSETEXT
 
 sub License_Nokia_1_0a
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Nokia Open Source License (NOKOS License) Version 1.0a
@@ -4538,7 +4852,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Nokia Open Source License (NOKOS License) Version 1.0a
 
 1. DEFINITIONS. 
@@ -5012,6 +5326,7 @@ Contributor(s):
 ______________________________________. 
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -5026,9 +5341,9 @@ EOFLICENSETEXT
 
 sub License_Python
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Python License
@@ -5037,7 +5352,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Python License
 
      CNRI OPEN SOURCE LICENSE AGREEMENT
@@ -5124,6 +5439,7 @@ this License Agreement.
                   ACCEPT
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -5138,9 +5454,9 @@ EOFLICENSETEXT
 
 sub License_Q_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The Q Public License
@@ -5150,7 +5466,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The Q Public License
 Version 1.0
 
@@ -5273,6 +5589,7 @@ This license is governed by the Laws of Norway. Disputes
 shall be settled by Oslo City Court.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -5287,9 +5604,9 @@ EOFLICENSETEXT
 
 sub License_Ricoh_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Ricoh Source Code Public License (Version 1.0)
@@ -5298,7 +5615,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Ricoh Source Code Public License (Version 1.0)
 
 1. Definitions. 
@@ -5783,6 +6100,7 @@ Contributor(s):
 ______________________________________." 
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -5797,9 +6115,9 @@ EOFLICENSETEXT
 
 sub License_Sun
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Sun Internet Standards Source License (SISSL)
@@ -5808,7 +6126,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Sun Internet Standards Source License (SISSL)
 
 1.0 DEFINITIONS 
@@ -6156,6 +6474,7 @@ located at
 http://api.openoffice.org
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -6170,9 +6489,9 @@ EOFLICENSETEXT
 
 sub License_Sleepycat
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The Sleepycat License
@@ -6181,7 +6500,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The Sleepycat License
 
 Copyright (c) 1990-1999 Sleepycat Software. All
@@ -6330,6 +6649,7 @@ ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -6344,9 +6664,9 @@ EOFLICENSETEXT
 
 sub License_Vovida_1_0
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	Vovida Software License v. 1.0
@@ -6355,7 +6675,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 Vovida Software License v. 1.0
 
 This license applies to all software incorporated in the
@@ -6420,6 +6740,7 @@ All third party licenses and copyright notices and other
 required legends also need to be complied with as well.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -6434,9 +6755,9 @@ EOFLICENSETEXT
 
 sub License_ZLIB
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software licensed under the...
 
 	The zlib/libpng License
@@ -6445,7 +6766,7 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
-$p_module_data->{'LICENSETEXT'} = <<EOFLICENSETEXT;
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
 The zlib/libpng License
 
 Copyright (c) <year> <copyright holders>
@@ -6473,6 +6794,7 @@ and redistribute it freely, subject to the following restrictions:
      from any source distribution.
 EOFLICENSETEXT
 
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -6487,25 +6809,12 @@ EOFLICENSETEXT
 
 sub License_Perl
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-my $license = <<EOFLICENSETEXT;
-Terms of Perl itself
+	my $gpl			= License_GPL_2 ();
+	my $artistic	= License_Artistic_w_Aggregation ();
 
-a) the GNU General Public License as published by the Free
-   Software Foundation; either version 1, or (at your option) any
-   later version, or
-b) the "Artistic License"
-
-EOFLICENSETEXT
-
-	&License_GPL_2 ($p_module_data);
-	$license .= '-' x 76 . "\n\n" . $p_module_data->{'LICENSETEXT'} . "\n\n";
-	&License_Artistic ($p_module_data);
-	$license .= '-' x 76 . "\n\n" . $p_module_data->{'LICENSETEXT'} . "\n\n";
-	$p_module_data->{'LICENSETEXT'} = $license;
-
-$p_module_data->{'COPYRIGHT'} = <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
 
@@ -6513,6 +6822,25 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
+$license{LICENSETEXT} = <<EOFLICENSETEXT;
+Terms of Perl itself
+
+a) the GNU General Public License as published by the Free
+   Software Foundation; either version 1, or (at your option) any
+   later version, or
+b) the "Artistic License"
+
+---------------------------------------------------------------------------
+
+$gpl->{LICENSETEXT}
+
+---------------------------------------------------------------------------
+
+$artistic->{LICENSETEXT}
+
+EOFLICENSETEXT
+
+	return (\%license);
 }
 
 ################################################ subroutine header begin ##
@@ -6528,18 +6856,19 @@ EOFCOPYRIGHT
 
 sub Custom_Licenses
 {
-	my ($p_module_data) = @_;
+	my %license;
 
-$p_module_data->{'COPYRIGHT'} .= <<EOFCOPYRIGHT;
+$license{COPYRIGHT} = <<EOFCOPYRIGHT;
 
 The full text of the license can be found in the
 LICENSE file included with this module.
 EOFCOPYRIGHT
 
+	return (\%license);
 }
 
-###########################################################################
-###########################################################################
 
-1;
+1; #this line is important and will help the module return a true value
+__END__
+
 

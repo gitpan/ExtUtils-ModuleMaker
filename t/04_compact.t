@@ -1,7 +1,7 @@
 # t/02_simple.t; A very simple module to make sure the parts are created
 
 use Test::More qw/no_plan/;
-#use Test::More tests => 11;
+#use Test::More tests => 12;
 
 BEGIN { use_ok( 'ExtUtils::ModuleMaker' ); }
 ok (chdir 'blib/testing' || chdir '../blib/testing', "chdir 'blib/testing'");
@@ -12,7 +12,9 @@ my $MOD;
 
 ok ($MOD  = ExtUtils::ModuleMaker->new
 			(
-				NAME		=> 'Sample::Module',
+				NAME		=> 'Sample::Module::Foo',
+				COMPACT		=> 1,
+				LICENSE		=> 'looselips',
 			),
 	"call ExtUtils::ModuleMaker->new");
 	
@@ -21,8 +23,8 @@ ok ($MOD->complete_build (),
 
 ###########################################################################
 
-ok (chdir 'Sample/Module',
-	"cd Sample/Module");
+ok (chdir 'Sample-Module-Foo',
+	"cd Sample-Module-Foo");
 
 #        MANIFEST.SKIP .cvsignore
 for (qw/Changes MANIFEST Makefile.PL LICENSE
@@ -38,7 +40,7 @@ ok (open (FILE, 'LICENSE'),
 my $filetext = do {local $/; <FILE>};
 close FILE;
 
-ok ($filetext =~ m/Terms of Perl itself/,
+ok ($filetext =~ m/Loose lips sink ships/,
 	"correct LICENSE generated");
 
 ###########################################################################

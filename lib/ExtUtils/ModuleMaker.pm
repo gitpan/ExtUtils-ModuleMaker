@@ -1,68 +1,58 @@
-#!/usr/local/bin/perl
 
 package ExtUtils::ModuleMaker;
 use strict;
-use ExtUtils::ModuleMaker::Licenses;
+
+use ExtUtils::ModuleMaker::Licenses::Standard;
+use ExtUtils::ModuleMaker::Licenses::Local;
+use File::Path;
 
 BEGIN {
 	use Exporter ();
-	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK);
-	$VERSION = "0.204";
+	use vars qw ($VERSION @ISA @EXPORT);
 	@ISA		= qw (Exporter);
 	@EXPORT		= qw (&Generate_Module_Files &Quick_Module);
-	@EXPORT_OK	= qw ();
+	$VERSION     = 0.312_29;
 }
 
 ########################################### main pod documentation begin ##
 
 =head1 NAME
 
-ExtUtils::ModuleMaker - A simple replacement for h2xs -XA
+ExtUtils::ModuleMaker - Better than h2xs, for creating all the parts of modules
 
 =head1 SYNOPSIS
 
-h2xs can be used for pure perl modules using the -XA flags.  But it has many annoying features.
-ExtUtils::ModuleMaker is designed to bring module templates into the 21st Century.
+  use ExtUtils::ModuleMaker;
+  #die "You really don't want to use ModuleMaker again for this module."
 
-In the simplest case it can be used from the command line as
-
-	perl -MExtUtils::ModuleMaker -e "Quick_Module ('Sample::Module::Foo')"
+  my $MOD = ExtUtils::ModuleMaker->new
+              (
+                NAME => 'Sample::Module',
+              );
+  $MOD->complete_build ();
 
 =head1 DESCRIPTION
 
-This module is a replacement for h2xs.  It can be used from the command line with just a module
-name, similar to h2xs, or can be called from a Modulefile.PL similar to calling MakeMaker from
-Makefile.PL.
+This module is a replacement for h2xs.  It can be called from a Modulefile.PL
+similar to calling MakeMaker from Makefile.PL.
+
+See also: the 'modulemaker' program, which is included with this package, that simplifies
+the process for casual module builders; the vast majority of lazy Perl programmers.
+
+=head1 INSTALLATION
+
+  perl Makefile.PL
+  make
+  make test
+  make install
+
+On windows machines use nmake rather than make.  If you would like to
+test the scripts without a real installation you can replace
+Makefile.PL with Fakefile.PL to install in a temporaty place.
 
 =head1 USAGE
 
-  use ExtUtils::ModuleMaker;
-
-  Generate_Module_Files (
-                         NAME     => 'Sample::Module::Foo',
-                         ABSTRACT => 'a sample module',
-                         AUTHOR   => {NAME    => 'A. U. Thor',
-                                      EMAIL   => 'a.u.thor@a.galaxy.far.far.away',
-                                      CPANID  => 'AUTHOR',
-                                      WEBSITE => 'http://a.galaxy.far.far.away/modules',
-                                     },
-                         VERSION  => 0.01,
-                         LICENSE  => 'perl',
-                         EXTRA_MODULES=> [
-                                          {
-                                           NAME     => 'Sample::Module::Bar',
-                                           ABSTRACT => 'a second module',
-                                          },
-                                          {
-                                           NAME     => 'Sample::Baz',
-                                           ABSTRACT => 'a third module',
-                                          },
-                                         ],
-  );
-
 =head1 BUGS
-
-Still only supports the simple perl only modules, not things with XS components.
 
 =head1 SUPPORT
 
@@ -70,20 +60,23 @@ Send email to modulemaker@PlatypiVentures.com.
 
 =head1 AUTHOR
 
-    R. Geoffrey Avery
-    CPAN ID: RGEOFFREY
-    modulemaker@PlatypiVentures.com
-    http://www.PlatypiVentures.com/perl/modules/ModuleMaker.shtml
+	R. Geoffrey Avery
+	CPAN ID: RGEOFFREY
+	modulemaker@PlatypiVentures.com
+	http://www.PlatypiVentures.com/perl/modules/ModuleMaker.shtml
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001-2002 R. Geoffrey Avery. All rights reserved.
+Copyright (c) 2001-20022 R. Geoffrey Avery. All rights reserved.
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
 
+The full text of the license can be found in the
+LICENSE file included with this module.
+
 =head1 SEE ALSO
 
-h2xs, ExtUtils::MakeMaker
+L<modulemaker>, L<perlnewmod>, L<h2xs>, L<ExtUtils::MakeMaker>
 
 =head1 PUBLIC METHODS
 
@@ -94,91 +87,55 @@ These are how you should interact with this module.
 
 ############################################# main pod documentation end ##
 
- 
-################################################ subroutine header begin ##
 
-=head2 Quick_Module
-
- Usage     :
-             perl -MExtUtils::ModuleMaker -e "Quick_Module ('Sample::Module')"
- or
-             use ExtUtils::ModuleMaker;
-             Quick_Module ('Sample::Module');
-
- Purpose   : Creates a Module.pm with supporing files
- Returns   : n/a
- Argument  : A name for the module, like 'Module' or 'Sample::Module'
- Throws    : 
- Comments  : More closely mimics h2xs behavior than Generate_Module_Files.
-           : Included to allow simple creation from a command line.
-
-See Also   : Generate_Module_Files
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Quick_Module
-{
-	&Generate_Module_Files (NAME => $_[0]);
-}
+# Public methods and functions go here. 
 
 ################################################ subroutine header begin ##
 
-=head2 Generate_Module_Files
+=head2 new
 
- Usage     : How to use this function/method
- Purpose   : Creates one or more modules with supporing files
- Returns   : n/a
+ Usage     : 
+ Purpose   : Creates an object for modules
+ Returns   : the module object
  Argument  : A hash with the information for the new module(s)
  Throws    : 
  Comments  : 
 
-See Also   : Verify_Data, Create_Changes, Create_Makefile, Create_README,
-           : Create_Module, Create_MANIFEST, Create_MANIFEST_SKIP,
-           : Create_cvsignore
+See Also   : 
 
 =over 4
 
 =item NAME
 
 The only required feature.  This is the name of the primary module (with '::' separators if needed).
+Will also support the older style separator "'" like the module D'Oh.
 
 =item ABSTRACT
 
 A short description of the module, this will be passed on to MakeMaker through Makefile.PL.
+CPAN likes to use this feature to describe the module.
 
 =item VERSION
 
-A real number to be the version number.  The default is 0.01.
+A real number to be the version number.  Do not use Linux style numbering with multiple dots
+like 2.4.24.  For alpha releases include an underscore to the right of the dot like 0.31_21. (Default is 0.01)
 
 =item LICENSE
 
 Which license to include in the Copyright section.  You can choose one of the standard licenses by
 including 'perl', 'gpl', 'artistic', and 18 others approved by opensource.org.
 The default is to choose the 'perl' flavor which is to
-share it "under the same terms as Perl itself".  Any other value is passed on directly so you
-can have any license you want.
+share it "under the same terms as Perl itself".
 
-=over 4
+Other licenses can be added by individual module authors to ExtUtils::ModuleMaker::Licenses::Local
+to keep your company lawyers happy.
 
-=item LICENSE == 'custom'
-
-When set to 'custom', you get the opportunity to specify exactly these fields...
-
-=item COPYRIGHT 
-
-Text to appear in the COPYRIGHT section of the pod
-
-=item LICENSETEXT
-
-The text for the LICENSE file
-
-=back
+Some licenses include placeholders that will be replaced with AUTHOR information.
 
 =item AUTHOR
 
-A hash contining information about the author to pass on to all the necessary places in the files.
+A hash containing information about the author to pass on to all the
+necessary places in the files.
 
 =over 4
 
@@ -192,25 +149,66 @@ Email address of the author.
 
 =item CPANID
 
-The CPANID of the author.  If this is omited, then the line will not be added to the documentation.
+The CPANID of the author.  If this is omited, then the line will not
+be added to the documentation.
 
 =item WEBSITE
 
 The personal or organizational website of the author.
 
+=item ORGANIZATION
+
+Company or group owning the module.
+
 =back
 
 =item EXTRA_MODULES
 
-An array of hashes that each contain values for NAME and ABSTRACT.  Each extra module will be created in
-the correct relative place in the B<lib> directory, but no extra supporting documents, like README or Changes.
+An array of hashes that each contain values for additional modules in
+the distribution.  As with the primary module only NAME is required and
+primary module values will be used if no value is given here.
 
-This is one major improvement over the earlier B<h2xs> as you can now build multi module packages.
+Each extra module will be created in the correct relative place in the
+B<lib> directory, but no extra supporting documents, like README or
+Changes.
 
-=item compact
+This is one major improvement over the earlier B<h2xs> as you can now
+build multi-module packages.
 
-For a module named "Foo::Bar::Baz" creates a base directory named "Foo-Bar-Baz"
-instead of Foo/Bar/Baz.
+=item COMPACT
+
+For a module named "Foo::Bar::Baz" creates a base directory named
+"Foo-Bar-Baz" instead of Foo/Bar/Baz. (Default off)
+
+=item VERBOSE
+
+Prints messages as it creates directories, writes files, etc. (Default off)
+
+=item INTERACTIVE
+
+Suppresses 'die' when something goes wrong.  Should only be used by interactive
+scripts like L<modulemaker>. (Default off)
+
+=item PERMISSIONS
+
+Used to create new directories.  (Default is 0755, group and world can not write)
+
+=item USAGE_MESSAGE
+
+Message given when the module 'die's.  Scripts should set this to the same string it
+would print if the user asked for help (often with a -h flag).
+
+=item NEED_POD
+
+Include POD section in modules. (Default is on)
+
+=item NEED_NEW_METHOD
+
+Include a simple 'new' method in the object oriented module.  (Default is on)
+
+=item CHANGES_IN_POD
+
+Don't include a 'Changes' file and add a HISTORY section to the POD. (Default is off).
 
 =back
 
@@ -218,32 +216,182 @@ instead of Foo/Bar/Baz.
 
 ################################################## subroutine header end ##
 
-sub Generate_Module_Files
+sub new
 {
-	my (%module_data) = @_;
+	my ($class, %parameters) = @_;
 
-	&Verify_Data     (\%module_data);
-	&Create_License  (\%module_data);
+	my $self = bless (default_values (), ref ($class) || $class);
 
-	&Check_Dir       ("$module_data{'Base_Dir'}/lib");
-	&Check_Dir       ("$module_data{'Base_Dir'}/t");
-
-	&Create_Changes  (\%module_data);
-	&Create_Makefile (\%module_data);
-	&Create_README   (\%module_data);
-
-	&Create_MANIFEST_SKIP (\%module_data);
-	&Create_cvsignore (\%module_data);
-
-	&Create_Module   (\%module_data);
-	foreach my $module (@{$module_data{'EXTRA_MODULES'}}) {
-		$module_data{'NAME'}     = $module->{'NAME'};
-		$module_data{'ABSTRACT'} = $module->{'ABSTRACT'};
-		$module_data{'FILE'}     = join ('/', 'lib', split ('::', $module_data{'NAME'}));
-		&Create_Module   (\%module_data);
+	foreach my $param (keys %parameters) {
+		if (ref ($parameters{$param}) eq 'HASH') {
+			foreach (keys (%{$parameters{$param}})) {
+				$self->{$param}{$_} = $parameters{$param}{$_};
+			}
+		} else {
+			$self->{$param} = $parameters{$param};
+		}
 	}
 
-	&Create_MANIFEST (\%module_data);
+	$self->set_author_data ();
+	$self->set_dates ();
+	$self->initialize_license ();
+
+	$self->{MANIFEST} = ['MANIFEST'];
+
+	return ($self);
+}
+
+################################################ subroutine header begin ##
+
+=head2 default_values
+
+ Usage     : $self->default_values ()
+ Purpose   : Defaults for 'new'.
+ Returns   : A hash of defaults as the basis for 'new'.
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : 
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub default_values
+{
+	my %defaults = (
+					LICENSE				=> 'perl',
+					VERSION				=> 0.01,
+					ABSTRACT			=> '',
+					AUTHOR				=>
+					   {
+						ORGANIZATION	=> 'XYZ Corp.',
+						WEBSITE			=> 'http://a.galaxy.far.far.away/modules',
+						EMAIL			=> 'a.u.thor@a.galaxy.far.far.away',
+						NAME			=> 'A. U. Thor',
+					   },
+					COMPACT				=> 0,
+					VERBOSE				=> 0,
+					INTERACTIVE			=> 0,
+					NEED_POD			=> 1,
+					NEED_NEW_METHOD		=> 1,
+					CHANGES_IN_POD		=> 0,
+
+					PERMISSIONS			=> 0755,
+				   );
+
+$defaults{USAGE_MESSAGE} = <<ENDOFUSAGE;
+
+There were problems with your data supplied to ExtUtils::ModuleMaker.
+Please fix the problems listed above and try again.
+
+ENDOFUSAGE
+
+	return (\%defaults);
+}
+
+################################################ subroutine header begin ##
+
+=head2 verify_values
+
+ Usage     : $self->verify_values ()
+ Purpose   : Verify module values are valid and complete.
+ Returns   : Error message if there is a problem
+ Argument  : n/a
+ Throws    : Will die with a death_message if errors and not interactive.
+ Comments  : 
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub verify_values
+{
+	my ($self) = @_;
+	my @errors;
+
+	push (@errors, 'NAME is required')
+		unless ($self->{NAME});
+	push (@errors, 'ABSTRACTs are limited to 44 characters')
+		if (length ($self->{ABSTRACT}) > 44);
+	push (@errors, 'CPAN IDS are 3-9 characters')
+		if ((exists ($self->{AUTHOR}{CPANID})) &&
+			($self->{AUTHOR}{CPANID}!~ m/^\w{3,9}$/));
+	push (@errors, 'EMAIL addresses need to have an at sign')
+		if ($self->{AUTHOR}{EMAIL}!~ m/.*\@.*/);
+	push (@errors, 'WEBSITEs should start with an "http:" or "https:"')
+		if ($self->{AUTHOR}{WEBSITE}!~ m/https?:\/\/.*/);
+	push (@errors, 'LICENSE is not recognized"')
+		unless (Verify_Local_License	($self->{LICENSE}) ||
+				Verify_Standard_License	($self->{LICENSE}));
+
+	return () unless (@errors);
+	$self->death_message (@errors);
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub complete_build
+{
+	my $self = shift;
+
+	$self->verify_values ();
+
+	$self->Create_Base_Directory ();
+	$self->Check_Dir (map { "$self->{Base_Dir}/$_" } qw (lib t scripts));
+
+	$self->print_file ('LICENSE',		$self->{LicenseParts}{LICENSETEXT});
+	$self->print_file ('README',		$self->FileText_README () );
+	$self->print_file ('Todo',			$self->FileText_ToDo ());
+
+	unless ($self->{CHANGES_IN_POD}) {
+		$self->print_file ('Changes',	$self->FileText_Changes ());
+	}
+
+	my $ct = 1;
+	foreach my $module ($self, @{$self->{EXTRA_MODULES}}) {
+		$self->generate_pm_file ($module);
+		my $testfile = sprintf ("t/%03d_load.t", $ct);
+		$self->print_file ($testfile,	$self->FileText_Test ($testfile, $module));
+		$ct++;
+	}
+
+	#Makefile must be created after generate_pm_file which sets $self->{FILE}
+	$self->print_file ('Makefile.PL',	$self->FileText_Makefile ());
+	$self->print_file ('MANIFEST', join ("\n", @{$self->{MANIFEST}}));
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub generate_pm_file
+{
+	my ($self, $module) = @_;
+
+	$self->Create_PM_Basics ($module);
+
+	my $page = $self->Block_Begin ($module) .
+
+			   (($self->module_value ($module, 'NEED_POD'))
+				? $self->Block_Module_Header ($module)
+				: () ) .
+
+			   (( ($self->module_value ($module, 'NEED_POD')) &&
+				  ($self->module_value ($module, 'NEED_NEW_METHOD')) )
+				? $self->Block_Subroutine_Header ($module)
+				: () ) .
+
+			   (($self->module_value ($module, 'NEED_NEW_METHOD'))
+				? $self->Block_New_Method ($module)
+				: () ) .
+
+			   $self->Block_Final_One ($module);
+
+	$self->print_file ($module->{FILE}, $page );
 }
 
 ########################################### main pod documentation begin ##
@@ -253,68 +401,58 @@ sub Generate_Module_Files
 Each private function/method is described here.
 These methods and functions are considered private and are intended for
 internal use by this module. They are B<not> considered part of the public
-interface and are described here for documentation purposes only.
+interface and are described here for documentation purposes.
+
+If you choose to make a subclass of this module to customize ModuleMaker
+for your environment you may need to replace some or all of these functions
+to get what you need.  But as a general rule programs should not be using them
+directly.
 
 =cut
 
 ############################################# main pod documentation end ##
 
-#Global Variables
-use vars qw ($RAW_MODULE);
-{
-	local $/;
-	$RAW_MODULE = <DATA>;
-}
 
 ################################################ subroutine header begin ##
 
-=head2 Verify_Data
+=head2 sample_function
 
- Usage     : 
- Purpose   : To fill in default values for unspecified features
- Returns   : n/a
- Argument  : pointer to hash of data for modules
- Throws    : 
- Comments  : 
+ Usage     : How to use this function/method
+ Purpose   : What it does
+ Returns   : What it returns
+ Argument  : What it wants to know
+ Throws    : Exceptions and other anomolies
+ Comments  : This is a sample subroutine header.
+           : It is polite to include more pod and fewer comments.
 
-See Also   : Create_Base_Directory
+See Also   : 
 
 =cut
 
 ################################################## subroutine header end ##
 
-sub Verify_Data
+sub set_dates
 {
-	my ($p_module_data) = @_;
+	my $self = shift;
+	$self->{year} = (localtime)[5] + 1900;
+	$self->{timestamp} = scalar localtime;
+	$self->{COPYRIGHT_YEAR} ||= $self->{year};
+}
 
-	die "Must give a 'NAME' for the module\n" unless ($p_module_data->{'NAME'});
+sub set_author_data
+{
+	my ($self) = @_;
 
-	$p_module_data->{'FILE'}     = join ('/', 'lib', split ('::', $p_module_data->{'NAME'}));
-	$p_module_data->{'Base_Dir'} = &Create_Base_Directory ($p_module_data->{'NAME'},
-							       $p_module_data->{compact});
-	$p_module_data->{'Next_Test_Number'} = 1;
-	$p_module_data->{'VERSION'} ||= 0.01;
-	$p_module_data->{'ABSTRACT'} = '' unless (exists ($p_module_data->{'ABSTRACT'}));
-
-	$p_module_data->{'AUTHOR'} = {} unless (ref ($p_module_data->{'AUTHOR'}) eq 'HASH');
-	unless (exists ($p_module_data->{'AUTHOR'}{'NAME'})) {
-		$p_module_data->{'AUTHOR'}{'NAME'}    = 'A. U. Thor';
-		print "Using default value for {'AUTHOR'}{'NAME'}:\t'$p_module_data->{'AUTHOR'}{'NAME'}'\n";
-	}
-	unless (exists ($p_module_data->{'AUTHOR'}{'EMAIL'})) {
-		$p_module_data->{'AUTHOR'}{'EMAIL'}   = 'a.u.thor@a.galaxy.far.far.away';
-		print "Using default value for {'AUTHOR'}{'EMAIL'}:\t'$p_module_data->{'AUTHOR'}{'EMAIL'}'\n";
-	}
-	unless (exists ($p_module_data->{'AUTHOR'}{'CPANID'})) {
-		$p_module_data->{'AUTHOR'}{'CPANID'}  = '';
-		print "Using default value for {'AUTHOR'}{'CPANID'}:\t'$p_module_data->{'AUTHOR'}{'CPANID'}'\n";
-	}
-	unless (exists ($p_module_data->{'AUTHOR'}{'WEBSITE'})) {
-		$p_module_data->{'AUTHOR'}{'WEBSITE'} = 'http://a.galaxy.far.far.away/modules';
-		print "Using default value for {'AUTHOR'}{'WEBSITE'}:\t'$p_module_data->{'AUTHOR'}{'WEBSITE'}'\n";
-	}
-
-	&Get_License ($p_module_data);
+	my $p_author = $self->{AUTHOR};
+	$p_author->{COMPOSITE} = ("\t" .
+							  join ("\n\t",
+									$p_author->{NAME},
+									($p_author->{CPANID})
+									? "CPAN ID: $p_author->{CPANID}" : (),
+									$p_author->{EMAIL},
+									$p_author->{WEBSITE},
+								   ),
+							 );
 }
 
 ################################################ subroutine header begin ##
@@ -339,27 +477,95 @@ See Also   : Check_Dir
 
 sub Create_Base_Directory
 {
-	my ($package_name, $compact) = @_;
-	my ($DIR, @package);
+	my $self = shift;
 
-	if ($compact) {
-	    ($DIR = $package_name) =~ s/(::|\')/-/g;
-	    print STDERR "creating compact directory for '$DIR'\n";
-	    &Check_Dir ($DIR);
-	} else {
-	    ($DIR, @package) = split ('::', $package_name);
+	$self->{Base_Dir} = join (($self->{COMPACT}) ? '-' : '/',
+							  split (/::|'/, $self->{NAME}));
+	$self->Check_Dir ($self->{Base_Dir});
+}
 
-	    print STDERR "creating directory for '$DIR'\n";
-	    &Check_Dir ($DIR);
-	
-	    foreach (@package) {
-		$DIR = join ('/', $DIR, $_);
-		print STDERR "creating directory for '$DIR'\n"; # if $VERBOSE
-		&Check_Dir ($DIR);
-	    }
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub Create_PM_Basics
+{
+	my ($self, $module) = @_;
+	my @layers = split (/::|'/, $module->{NAME});
+	my $file = pop (@layers);
+	my $dir = join ('/', 'lib', @layers);
+
+	$self->Check_Dir ("$self->{Base_Dir}/$dir");
+	$module->{FILE} = "$dir/$file.pm";
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub initialize_license
+{
+	my ($self) = @_;
+
+	$self->{LICENSE} = lc ($self->{LICENSE});
+
+	my $license_function = Get_Local_License	($self->{LICENSE}) ||
+						   Get_Standard_License	($self->{LICENSE});
+
+	if (ref ($license_function) eq 'CODE') {
+		$self->{LicenseParts} = $license_function->();
+
+		$self->{LicenseParts}{LICENSETEXT} =~ s/###year###/$self->{COPYRIGHT_YEAR}/ig;
+		$self->{LicenseParts}{LICENSETEXT} =~ s/###owner###/$self->{AUTHOR}{NAME}/ig;
+		$self->{LicenseParts}{LICENSETEXT} =~ s/###organization###/$self->{AUTHOR}{ORGANIZATION}/ig;
 	}
 
-	return ($DIR);
+}
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub get_attributes
+{
+	my $self = shift;
+	local $_;
+	return map { $self->{$_} } @_;
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub module_value
+{
+	my ($self, $module, @keys) = @_;
+
+	if (scalar (@keys) == 1) {
+		return ($module->{$keys[0]}) if (exists (($module->{$keys[0]})));
+		return ($self->{$keys[0]});
+	} elsif (scalar (@keys) == 2) {
+		return ($module->{$keys[0]}{$keys[1]}) if (exists (($module->{$keys[0]}{$keys[1]})));
+		return ($self->{$keys[0]}{$keys[1]});
+	} else {
+		return ();
+	}
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
+sub print_file
+{
+	my ($self, $filename, $page) = @_;
+
+	push (@{$self->{MANIFEST}}, $filename) unless ($filename eq 'MANIFEST');
+	$self->log_message ("writing file '$filename'");
+
+	open (FILE, ">$self->{Base_Dir}/$filename") or $self->death_message ("Could not write '$filename', $!");
+	print FILE ($page);
+	close FILE;
 }
 
 ################################################ subroutine header begin ##
@@ -385,511 +591,299 @@ See Also   :
 
 sub Check_Dir
 {
-	my($dir, $MODE) = @_;
+	my $self = shift;
 
-	$MODE = 0770 unless ($MODE);
-#	$MODE = 0770 if ($MODE eq "");
-	if( ! ( -d $dir) ){
-		mkdir($dir, $MODE);
-		if( ! -d $dir ){
-			print STDERR "I cannot create the Directory $dir.";
-			exit (0);
-		}
-	}
-	chmod ($MODE, $dir);
-} # Check_Dir
+	return mkpath (\@_, $self->{VERBOSE}, $self->{PERMISSIONS});
+	$self->death_message ("Can't create a directory: $!");
+}
 
 ################################################ subroutine header begin ##
-
-=head2 Create_Makefile
-
- Usage     : Create_Makefile ($p_module_data);
- Purpose   : Write the Makefile.PL file
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
 ################################################## subroutine header end ##
 
-sub Create_Makefile
+sub death_message
 {
-	my ($p_module_data) = @_;
+	my $self = shift;
 
-	push (@{$p_module_data->{'MANIFEST'}}, 'Makefile.PL');
-
-	open (FILE, ">$p_module_data->{'Base_Dir'}/Makefile.PL") or die "Could not write Makefile.PL, $!";
-
-print FILE <<EOFF;
-use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
-WriteMakefile(
-    NAME         => '$p_module_data->{'NAME'}',
-    VERSION_FROM => '$p_module_data->{'FILE'}.pm', # finds \$VERSION
-    AUTHOR       => '$p_module_data->{'AUTHOR'}{'NAME'} ($p_module_data->{'AUTHOR'}{'EMAIL'})',
-    ABSTRACT     => '$p_module_data->{'ABSTRACT'}'
-);
-EOFF
-
-	close FILE;
+	die (join "\n", @_, '', $self->{USAGE_MESSAGE}) unless $self->{INTERACTIVE};
+	print (join "\n", 'Oops, there are the following errors:', @_, '', '');
 }
 
 ################################################ subroutine header begin ##
-
-=head2 Create_Changes
-
- Usage     : Create_Changes ($p_module_data);
- Purpose   : 
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
 ################################################## subroutine header end ##
 
-sub Create_Changes
+sub log_message
 {
-	my ($p_module_data) = @_;
-
-	push (@{$p_module_data->{'MANIFEST'}}, 'Changes');
-
-	my @thetime = localtime ();
-	open (FILE, ">$p_module_data->{'Base_Dir'}/Changes") or die "Could not write Changes, $!";
-	print FILE ("Revision history for Perl extension $p_module_data->{'NAME'}.\n\n$p_module_data->{'VERSION'}  ",
-				sprintf ("%s %s %02d %02d:%02d:%02d %04d",
-						 ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')[$thetime[6]],
-						 ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-						  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')[$thetime[4]],
-						 $thetime[3],
-						 $thetime[2], $thetime[1], $thetime[0],
-						 (1900 + $thetime[5])),
-				"\n\t- original version; created by ExtUtils::ModuleMaker $VERSION\n\n");
-	close FILE;
+	my ($self, $message) = @_;
+	print "$message\n" if $self->{VERBOSE};
 }
 
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
 ################################################ subroutine header begin ##
-
-=head2 Create_License
-
- Usage     : Create_License ($p_module_data);
- Purpose   : 
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
 ################################################## subroutine header end ##
 
-sub Create_License
+sub pod_section
 {
-	my ($p_module_data) = @_;
+	my ($self, $heading, $content) = @_;
 
-	push (@{$p_module_data->{'MANIFEST'}}, 'LICENSE');
+my $string = <<ENDOFSTUFF;
 
-	open (FILE, ">$p_module_data->{'Base_Dir'}/LICENSE") or die "Could not write LICENSE, $!";
-	print FILE ($p_module_data->{'LICENSETEXT'});
-	close FILE;
-}
+ ====head1 $heading
 
-################################################ subroutine header begin ##
+$content
+ENDOFSTUFF
 
-=head2 Create_MANIFEST
-
- Usage     : Create_MANIFEST ($p_module_data);
- Purpose   : 
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Create_MANIFEST
-{
-	my ($p_module_data) = @_;
-
-	push (@{$p_module_data->{'MANIFEST'}}, 'MANIFEST');
-
-	open (FILE, ">$p_module_data->{'Base_Dir'}/MANIFEST") or die "Could not write MANIFEST, $!";
-	print FILE join ("\n", @{$p_module_data->{'MANIFEST'}});
-	close FILE;
-}
-
-################################################ subroutine header begin ##
-
-=head2 Create_README
-
- Usage     : Create_README ($p_module_data);
- Purpose   : 
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Create_README
-{
-	my ($p_module_data) = @_;
-
-	push (@{$p_module_data->{'MANIFEST'}}, 'README');
-
-	open (FILE, ">$p_module_data->{'Base_Dir'}/README") or die "Could not write README, $!";
-print FILE <<EOF;
-pod2text $p_module_data->{'FILE'}.pm > README
-
-If this is still here it means the programmer was too lazy to create the readme file.
-
-You can create it now by using the command shown above from this directory.
-EOF
-
-	close FILE;
-}
-
-################################################ subroutine header begin ##
-
-=head2 Create_MANIFEST_SKIP
-
- Usage     : Create_MANIFEST_SKIP ($p_module_data);
- Purpose   : Writes MANIFEST.SKIP which prevents the following tagets
-             `make install` and `make dist` from using distribution files,
-             editor backups, revision control (CVS & RCS) and dynamically-
-             created MakeMaker files & directories.
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    :
- Comments  :
- Author    : joshua@cpan.org
-
-The regular expressions, explained:
-
-=over 4
-
-=item ^Makefile$ - created by `perl Makefile.PL`
-
-=item ^blib/ - created by `make`
-
-=item ^Makefile\.[a-z]+$ - ignores `Makefile.old`
-
-=item ^pm_to_blib$ - created by `make`
-
-=item CVS/.* - CVS stores working dir info in the CVS directory
-
-=item ,v$ - RCS files
-
-=item ^te?mp/ - Temporary directory
-
-=item \.old$ - Makefile gets renamed to Makefile.old each time you `make`
-
-=item \.bak$ - Backup files
-
-=item ~$ - Editor-created file backup
-
-=item ^# - Editor-created file backup
-
-=item \.shar$ - `make shardist` distribution
-
-=item \.tar$ - `make tardist` distribution
-
-=item \.tgz$ - `make dist` distribution
-
-=item \.tar\.gz$ - `make dist` distribution
-
-=item \.zip$ - `make zipdist` distribution
-
-=item _uu$ - `make uutardist` distribution
-
-=back
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Create_MANIFEST_SKIP {
-	my ($p_module_data) = @_;
-
-	push (@{$p_module_data->{'MANIFEST'}}, 'MANIFEST.SKIP');
-
-	open (FILE, "> $p_module_data->{'Base_Dir'}/MANIFEST.SKIP")
-	    or die "Could not write MANIFEST.SKIP, $!";
-
-print FILE <<'EOF';
-^blib/
-^Makefile$
-^Makefile\.[a-z]+$
-^pm_to_blib$
-CVS/.*
-,v$
-^tmp/
-\.old$
-\.bak$
-~$
-^#
-\.shar$
-\.tar$
-\.tgz$
-\.tar\.gz$
-\.zip$
-_uu$
-EOF
-	close FILE;
-}
-
-
-################################################ subroutine header begin ##
-
-=head2 Create_cvsignore
-
- Usage     : Create_cvsignore ($p_module_data);
- Purpose   : Writes .cvsignore. Prevents MakeMaker's dynamically-
-             created files from getting checked into CVS (or listed
-             during `cvs update`.
- Returns   : n/a
- Argument  : $p_module_data = hash with all the data
- Throws    :
- Comments  :
- Author    : joshua@cpan.org
-
-See Also   :
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Create_cvsignore {
-	my ($p_module_data) = @_;
-
-	push (@{$p_module_data->{'MANIFEST'}}, '.cvsignore');
-
-	open (FILE, "> $p_module_data->{'Base_Dir'}/.cvsignore")
-	    or die "Could not write .cvsignore, $!";
-
-print FILE <<EOF;
-blib
-Makefile
-pm_to_blib
-EOF
-
-	close FILE;
-}
-
-
-
-################################################ subroutine header begin ##
-
-=head2 Create_Module
-
- Usage     : 
- Purpose   : 
- Returns   : 
- Argument  : 
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
-################################################## subroutine header end ##
-
-sub Create_Module
-{
-	my ($p_module_data) = @_;
-
-	my $DIR = $p_module_data->{'Base_Dir'};
-	my @package = split ('/', $p_module_data->{'FILE'});
-	my $file = pop (@package);
-
-	foreach (@package) {
-		$DIR .= '/' . $_;
-		print STDERR "creating directory for '$DIR'\n";
-		&Check_Dir ($DIR);
-	}
-
-	my $string = $RAW_MODULE;
-
-	$string =~ s/##-##PACKAGE_NAME##-##/$p_module_data->{'NAME'}/g;
-	$string =~ s/##-##ABSTRACT##-##/$p_module_data->{'ABSTRACT'}/;
-	$string =~ s/##-##VERSION##-##/$p_module_data->{'VERSION'}/;
-	$string =~ s/##-##COPYRIGHT##-##/$p_module_data->{'COPYRIGHT'}/;
 	$string =~ s/\n ====/\n=/g;
-
-	my $author = join ("\n\t",
-					   $p_module_data->{'AUTHOR'}{'NAME'},
-					   ($p_module_data->{'AUTHOR'}{'CPANID'})
-						   ? "CPAN ID: $p_module_data->{'AUTHOR'}{'CPANID'}" : (),
-					   $p_module_data->{'AUTHOR'}{'EMAIL'},
-					   $p_module_data->{'AUTHOR'}{'WEBSITE'},
-					  );
-	$string =~ s/##-##AUTHOR##-##/$author/;
-
-	push (@{$p_module_data->{'MANIFEST'}}, "$p_module_data->{'FILE'}.pm");
-
-	open (FILE, ">$p_module_data->{'Base_Dir'}/$p_module_data->{'FILE'}.pm") or
-			die "Could not write $p_module_data->{'FILE'}.pm, $!";
-	print FILE $string;
-	close FILE;
-
-	&Create_Test_Init ($p_module_data);
+	return ($string);
 }
 
 ################################################ subroutine header begin ##
-
-=head2 Create_Test_Init
-
- Usage     : 
- Purpose   : 
- Returns   : 
- Argument  : 
- Throws    : 
- Comments  : 
-
-See Also   : 
-
-=cut
-
 ################################################## subroutine header end ##
 
- sub Create_Test_Init
+sub pod_wrapper
 {
-	my ($p_module_data) = @_;
+	my ($self, $section) = @_;
 
-	my $test_name = sprintf ("t/%02d_ini.t", $p_module_data->{'Next_Test_Number'}++);
-	push (@{$p_module_data->{'MANIFEST'}}, $test_name);
-
-	open (FILE, ">$p_module_data->{'Base_Dir'}/$test_name") or die "Could not write $test_name, $!";
-print FILE <<EOF;
-# $test_name; just to load $p_module_data->{'NAME'} by using it
-
-\$|++; 
-print "1..1\n";
-my(\$test) = 1;
-
-# 1 load
-use $p_module_data->{'NAME'};
-my(\$loaded) = 1;
-\$loaded ? print "ok \$test\n" : print "not ok \$test\n";
-\$test++;
-
-# end of $test_name
-
-EOF
-
-	close FILE;
-}
-
-###########################################################################
-###########################################################################
-
-1;
-
-__DATA__
-
-package ##-##PACKAGE_NAME##-##;
-use strict;
-
-BEGIN {
-	use Exporter ();
-	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = ##-##VERSION##-##;
-	@ISA         = qw (Exporter);
-	#Give a hoot don't pollute, do not export more than needed by default
-	@EXPORT      = qw ();
-	@EXPORT_OK   = qw ();
-	%EXPORT_TAGS = ();
-}
+my $head = <<EOFBLOCK;
 
 ########################################### main pod documentation begin ##
 # Below is the stub of documentation for your module. You better edit it!
 
- ====head1 NAME
+EOFBLOCK
 
-##-##PACKAGE_NAME##-## - ##-##ABSTRACT##-##
+my $tail = <<EOFBLOCK;
 
- ====head1 SYNOPSIS
+ ====cut
 
-  use ##-##PACKAGE_NAME##-##;
-  blah blah blah
+############################################# main pod documentation end ##
 
- ====head1 DESCRIPTION
+EOFBLOCK
 
+	$tail =~ s/\n ====/\n=/g;
+	return (join ('', $head, $section, $tail));
+}
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
+################################################ subroutine header begin ##
+
+=head2 Block_Begin
+
+ Usage     : $self->Block_Begin ()
+ Purpose   : Build part of a module pm file
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Block_Begin
+{
+	my ($self, $module) = @_;
+
+	my $version = $self->module_value ($module, 'VERSION');
+
+my $string = <<EOFBLOCK;
+
+package $module->{NAME};
+use strict;
+
+BEGIN {
+	use Exporter ();
+	use vars qw (\$VERSION \@ISA \@EXPORT \@EXPORT_OK \%EXPORT_TAGS);
+	\$VERSION     = $version;
+	\@ISA         = qw (Exporter);
+	#Give a hoot don't pollute, do not export more than needed by default
+	\@EXPORT      = qw ();
+	\@EXPORT_OK   = qw ();
+	\%EXPORT_TAGS = ();
+}
+
+EOFBLOCK
+
+	return ($string);
+}
+
+################################################ subroutine header begin ##
+
+=head2 Block_Begin_BareBones
+
+ Usage     : $self->Block_Begin_BareBones ()
+ Purpose   : Build part of a module pm file
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Block_Begin_BareBones
+{
+	my ($self, $module) = @_;
+
+	my $version = $self->module_value ($module, 'VERSION');
+
+my $string = <<EOFBLOCK;
+
+package $module->{NAME};
+use strict;
+
+BEGIN {
+	use vars qw (\$VERSION);
+	\$VERSION     = $version;
+}
+
+EOFBLOCK
+
+	return ($string);
+}
+
+################################################ subroutine header begin ##
+
+=head2 Block_New_Method
+
+ Usage     : $self->Block_New_Method ()
+ Purpose   : Build part of a module pm file
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Block_New_Method
+{
+	my ($self, $module) = @_;
+
+my $string = <<'EOFBLOCK';
+
+sub new
+{
+	my ($class, %parameters) = \@_;
+
+	my $self = bless ({}, ref ($class) || $class);
+
+	return ($self);
+}
+
+EOFBLOCK
+
+	return ($string);
+}
+
+################################################ subroutine header begin ##
+
+=head2 Block_Module_Header
+
+ Usage     : $self->Block_Module_Header ()
+ Purpose   : Build part of a module pm file
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Block_Module_Header
+{
+	my ($self, $module) = @_;
+
+my $description = <<EOFBLOCK;
 Stub documentation for this module was created by ExtUtils::ModuleMaker.
 It looks like the author of the extension was negligent enough
 to leave the stub unedited.
 
 Blah blah blah.
+EOFBLOCK
 
- ====head1 USAGE
+	my $string = join
+		('',
+		 $self->pod_section (NAME =>
+								$self->module_value ($module, 'NAME') . ' - ' .
+								$self->module_value ($module, 'ABSTRACT')
+							),
+		 $self->pod_section (SYNOPSIS =>
+								'  use ' . $self->module_value ($module, 'NAME') .
+								"\n  blah blah blah\n"
+							),
+		 $self->pod_section (DESCRIPTION => $description
+							),
+		 $self->pod_section (USAGE => ''
+							),
+		 $self->pod_section (BUGS => ''
+							),
+		 $self->pod_section (SUPPORT => ''
+							),
+		 (($self->{CHANGES_IN_POD})
+		  ?
+			 $self->pod_section (HISTORY => $self->FileText_Changes ('only pod')
+								)
+		  : ()
+		 ),
+		 $self->pod_section (AUTHOR =>
+								$self->module_value ($module, 'AUTHOR', 'COMPOSITE')
+							),
+		 $self->pod_section (COPYRIGHT =>
+								$self->module_value ($module, 'LicenseParts', 'COPYRIGHT')
+							),
+		 $self->pod_section ('SEE ALSO' =>
+								'perl(1).'
+							),
+		);
 
- ====head1 BUGS
+	return ($self->pod_wrapper ($string));
+}
 
- ====head1 SUPPORT
+################################################ subroutine header begin ##
 
- ====head1 AUTHOR
+=head2 Block_Subroutine_Header
 
-	##-##AUTHOR##-##
+ Usage     : $self->Block_Subroutine_Header ()
+ Purpose   : Build part of a module pm file
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
 
- ====head1 COPYRIGHT
+See Also   : 
 
-##-##COPYRIGHT##-##
- ====head1 SEE ALSO
+=cut
 
-perl(1).
+################################################## subroutine header end ##
 
- ====head1 PUBLIC METHODS
+sub Block_Subroutine_Header
+{
+	my ($self, $module) = @_;
 
-Each public function/method is described here.
-These are how you should interact with this module.
-
- ====cut
-
-############################################# main pod documentation end ##
-
-
-# Public methods and functions go here. 
-
-
-
-########################################### main pod documentation begin ##
-
- ====head1 PRIVATE METHODS
-
-Each private function/method is described here.
-These methods and functions are considered private and are intended for
-internal use by this module. They are B<not> considered part of the public
-interface and are described here for documentation purposes only.
-
- ====cut
-
-############################################# main pod documentation end ##
-
-
-# Private methods and functions go here.
-
-
-
-
+my $string = <<EOFBLOCK;
 
 ################################################ subroutine header begin ##
 
@@ -909,8 +903,327 @@ See Also   :
 
 ################################################## subroutine header end ##
 
+EOFBLOCK
+
+	$string =~ s/\n ====/\n=/g;
+	return ($string);
+}
+
+################################################ subroutine header begin ##
+
+=head2 Block_Final_One
+
+ Usage     : $self->Block_Final_One ()
+ Purpose   : Make module return a true value
+ Returns   : Part of the file being built
+ Argument  : $module: pointer to the module being built, for the primary
+                      module it is a pointer to $self
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Block_Final_One
+{
+	my ($self, $module) = @_;
+
+my $string = <<EOFBLOCK;
+
+1; #this line is important and will help the module return a true value
+__END__
+
+EOFBLOCK
+
+	return ($string);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_README
+
+ Usage     : $self->FileText_README ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_README
+{
+	my ($self) = @_;
+
+my $page = <<EOF;
+pod2text $self->{NAME}.pm > README
+
+If this is still here it means the programmer was too lazy to create the readme file.
+
+You can create it now by using the command shown above from this directory.
+
+At the very least you should be able to use this set of instructions
+to install the module...
+
+perl Makefile.PL
+make
+make test
+make install
+
+If you are on a windows box you should use 'nmake' rather than 'make'.
+EOF
+
+	return ($page);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_Changes
+
+ Usage     : $self->FileText_Changes ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : $only_in_pod:  True value to get only a HISTORY section for POD
+                            False value to get whole Changes file
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_Changes
+{
+	my ($self, $only_in_pod) = @_;
+
+	my $page;
+
+	unless ($only_in_pod) {
+$page = <<EOF;
+Revision history for Perl module $self->{NAME}
+
+$self->{VERSION} $self->{timestamp}
+	- original version; created by ExtUtils::ModuleMaker $VERSION
 
 
+EOF
+	} else {
+$page = <<EOF;
+$self->{VERSION} $self->{timestamp}
+	- original version; created by ExtUtils::ModuleMaker $VERSION
+EOF
+	}
+
+	return ($page);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_ToDo
+
+ Usage     : $self->FileText_ToDo ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_ToDo
+{
+	my ($self) = @_;
+	
+my $page = <<EOF;
+TODO list for Perl module $self->{NAME}
+
+- Nothing yet
+
+
+EOF
+
+	return ($page);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_Makefile
+
+ Usage     : $self->FileText_Makefile ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_Makefile
+{
+	my ($self) = @_;
+	
+my $page = <<EOF;
+use ExtUtils::MakeMaker;
+# See lib/ExtUtils/MakeMaker.pm for details of how to influence
+# the contents of the Makefile that is written.
+WriteMakefile(
+    NAME         => '$self->{NAME}',
+    VERSION_FROM => '$self->{FILE}', # finds \$VERSION
+    AUTHOR       => '$self->{AUTHOR}{NAME} ($self->{AUTHOR}{EMAIL})',
+    ABSTRACT     => '$self->{ABSTRACT}',
+);
+EOF
+#	($] ge '5.005')
+#	 ? (AUTHOR   => '$self->{AUTHOR}{NAME} ($self->{AUTHOR}{EMAIL})',
+#		ABSTRACT => '$self->{ABSTRACT}',
+#	   )
+#	 : (),
+
+	return ($page);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_Test
+
+ Usage     : $self->FileText_Test ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+             Will make a test with or without a checking for method new.
+
+See Also   : 
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_Test
+{
+	my ($self, $testnum, $module) = @_;
+
+	my $name	= $self->module_value ($module, 'NAME');
+	my $neednew	= $self->module_value ($module, 'NEED_NEW_METHOD');
+
+	my $page;
+	if ($neednew) {
+		my $name = $module->{NAME};
+
+$page = <<EOF;
+# -*- perl -*-
+
+# $testnum - check module loading and create testing directory
+
+use Test::More tests => 2;
+
+BEGIN { use_ok( '$name' ); }
+
+my \$object = ${name}->new ();
+isa_ok (\$object, '$name');
+
+
+EOF
+
+	} else {
+
+$page = <<EOF;
+# -*- perl -*-
+
+# $testnum - check module loading and create testing directory
+
+use Test::More tests => 1;
+
+BEGIN { use_ok( '$name' ); }
+
+
+EOF
+
+	}
+
+	return ($page);
+}
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
+
+ 
+################################################ subroutine header begin ##
+
+=head2 Quick_Module
+
+ Usage     :
+             perl -MExtUtils::ModuleMaker -e "Quick_Module ('Sample::Module')"
+ or
+             use ExtUtils::ModuleMaker;
+             Quick_Module ('Sample::Module');
+
+ Purpose   : Creates a Module.pm with supporing files
+ Returns   : n/a
+ Argument  : A name for the module, like 'Module' or 'Sample::Module'
+ Throws    : 
+ Comments  : More closely mimics h2xs behavior than Generate_Module_Files.
+           : Included to allow simple creation from a command line.
+           : This function is deprecated and will disappear forever soon.
+
+See Also   : Generate_Module_Files
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Quick_Module
+{
+	&Generate_Module_Files (NAME => $_[0]);
+}
+
+################################################ subroutine header begin ##
+
+=head2 Generate_Module_Files
+
+ Usage     : How to use this function/method
+ Purpose   : Creates one or more modules with supporing files
+ Returns   : n/a
+ Argument  : A hash with the information for the new module(s)
+ Throws    : 
+ Comments  : This function is deprecated and will disappear forever soon.
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Generate_Module_Files
+{
+	my $MOD = ExtUtils::ModuleMaker->new (@_);
+	$MOD->complete_build ();
+}
+
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
 
 1; #this line is important and will help the module return a true value
 __END__
