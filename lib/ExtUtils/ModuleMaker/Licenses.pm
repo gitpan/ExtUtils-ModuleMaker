@@ -6,7 +6,7 @@ use strict;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK);
-	$VERSION = 0.201_02;
+	$VERSION = 0.202;
 	@ISA		= qw (Exporter);
 	@EXPORT		= qw (&Get_License);
 	@EXPORT_OK	= qw ();
@@ -134,7 +134,7 @@ sub Get_License
 		$p_module_data->{'LICENSE'} = 'perl' ;
 	}
 
-	$callbacks{$p_module_data->{'LICENSE'}} ($p_module_data);
+	$callbacks{$p_module_data->{'LICENSE'}}->($p_module_data);
 
 	$p_module_data->{'COPYRIGHT'} =
 		'Copyright (c) ' . (1900 + (localtime ())[5]) .

@@ -7,7 +7,7 @@ use ExtUtils::ModuleMaker::Licenses;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK);
-	$VERSION = 0.201_02;
+	$VERSION = 0.202;
 	@ISA		= qw (Exporter);
 	@EXPORT		= qw (&Generate_Module_Files &Quick_Module);
 	@EXPORT_OK	= qw ();

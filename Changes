@@ -1,5 +1,8 @@
 Revision history for Perl extension ExtUtils::ModuleMaker.
 
+0.202  Fri Dec 28  2001
+	- Fixed typo on line 134 of Licences.pm
+
 0.201_02  Fri Jul 27  2001
 	- Coming out party for the module at TPC 5.0
 	- Change name of module from ModuleMaker to ExtUtils::ModuleMaker
