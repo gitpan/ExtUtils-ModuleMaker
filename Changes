@@ -1,6 +1,19 @@
 Revision history for Perl extension ExtUtils::ModuleMaker.
 
-0.32  July 2002
+0.32 June 16 2003 (YAPC::Boca_Raton)
+	- Removed Fakefile.PL that was for testing but only caused
+	  problems.  The content has been held over after __END__
+	  in Makefile.PL
+	- Added missing fullname for libpng license which was causing
+	  an odd number of parts in a hash
+	- Added support for Module::Build (patch from Dave Rolsky)
+	- Fixed misplaced backslash when generating the new method
+	- Generated Makefile.PL now has a prerequisite of Test::Simple
+
+
+--------------------------------------------------------------
+
+0.312_29  September 2002 (YAPC::Munich)
 	- Complete rewrite from the ground up for the 0.3xxx line
 	- Created by ExtUtils::ModuleMaker 0.202
 	- Now object oriented for customizability

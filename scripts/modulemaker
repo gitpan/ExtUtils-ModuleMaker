@@ -10,7 +10,7 @@ use Data::Dumper;
 
 use vars qw (%opts $VERSION %destinations %messages);
 
-$VERSION = 0.312_21;
+$VERSION = 0.32;
 
 ########################################### main pod documentation begin ##
 
@@ -39,6 +39,7 @@ sub Main_Menu
 	my $string = $messages{'Main Menu'};
 	$string =~ s|##name##|$MOD->{NAME}|;
 	$string =~ s|##license##|$MOD->{LICENSE}|;
+	$string =~ s|##build##|$MOD->{BUILD_SYSTEM}|;
 
 	my $response = Question_User ($string, 'menu');
 
@@ -185,6 +186,30 @@ sub License_Display
 ################################################ subroutine header begin ##
 ################################################## subroutine header end ##
 
+my %Build_Menu = (
+                                   E  => 'ExtUtils::MakeMaker',
+                                   B  => 'Module::Build',
+                                   P  => 'Module::Build and proxy Makefile.PL',
+                 );
+
+sub Build_Menu
+{
+	my $MOD = shift;
+
+	my $string = $messages{Build_Menu};
+	$string =~ s|##Build Here##|$MOD->{BUILD_SYSTEM}|;
+
+	my $response = Question_User ($string, 'menu');
+	return ($destinations{'Build Menu'}{$response}) if (exists $destinations{'Build Menu'}{$response});
+
+	$MOD->{BUILD_SYSTEM} = $Build_Menu{$response} if exists $Build_Menu{$response};
+
+	return ('Build Menu');
+}
+
+################################################ subroutine header begin ##
+################################################## subroutine header end ##
+
 sub Copyright_Display
 {
 	my $MOD = shift;
@@ -260,7 +285,8 @@ close STUFF;
 sub Usage
 {
 my $message = <<ENDOFUSAGE;
-newmodule.pl [-CIPVch] [-v version] [-n module_name] [-l license_name]
+modulemaker [-CIPVch] [-v version] [-n module_name]
+            [-l license_name] [-b build_system]
 
 Currently Supported Features
     -V   Flag for verbose messages during module creation
@@ -269,6 +295,7 @@ Currently Supported Features
     -l   Specify a license for this extension.
     -n   Specify a name to use for the extension (required).
     -v   Specify a version number for this extension.
+    -b   Specify a build system for this extension.
     -P   Omit the stub POD section.
     -C   Omit creating the Changes file, add HISTORY heading to stub POD.
     -I   Disable INTERACTIVE mode, the command line arguments better be complete
@@ -296,6 +323,7 @@ ENDOFUSAGE
 							 A	=> 'Author Menu',
 							 L	=> 'License Menu',
 							 D	=> 'Directives_Menu',
+							 B	=> 'Build Menu',
 							 Q	=> 'done',
 						   },
 	 'Author Menu'		=> {
@@ -312,6 +340,11 @@ ENDOFUSAGE
 							 R	=> 'Main Menu',
 							 Q	=> 'done',
 							 P	=> 'License Menu',
+						   },
+
+	 'Build Menu'		=> {
+							 R      => 'Main Menu',
+							 Q      => 'done',
 						   },
 	);
 
@@ -330,6 +363,7 @@ N - Name of module       '##name##'
 A - Author information
 L - License              '##license##'
 D - Directives
+B - Build system         '##build##'
 G - Generate module
 
 Q - Quit program
@@ -337,7 +371,7 @@ Q - Quit program
 Please choose which feature you would like to edit: 
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
 
 	 'Author Menu'		=> <<EOF,
 modulemaker: Author Menu
@@ -350,7 +384,7 @@ R - Return to main menu
 Please choose which feature you would like to edit:
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
 
 	 Directives_Menu		=> <<EOF,
 modulemaker: Directives Menu
@@ -363,7 +397,7 @@ R - Return to main menu
 Please choose which feature you would like to edit:
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
 
 	 'License Menu'		=> <<EOF,
 modulemaker: License Menu
@@ -381,7 +415,7 @@ R - Return to main menu
 Please choose which license you would like to use:
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
 
 	 License_Display		=> <<EOF,
 Here is the current license:
@@ -396,7 +430,7 @@ R - Return to main menu
 Please choose which license you would like to use:
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
 
 	 Copyright_Display		=> <<EOF,
 Here is the current copyright:
@@ -411,19 +445,35 @@ R - Return to main menu
 Please choose which license you would like to use:
 EOF
 
-	 #---------------------------------------------------------------------
+	#---------------------------------------------------------------------
+
+	 Build_Menu             => <<EOF,
+Here is the current build system:
+
+##Build Here##
+
+E - ExtUtils::MakeMaker
+B - Module::Build
+P - Module::Build and proxy Makefile.PL
+R - Return to main menu
+
+Please choose which build system you would like to use:
+EOF
+
+    #---------------------------------------------------------------------
 	);
 
 ###########################################################################
 ###########################################################################
 
-getopts ("dhCIPVcn:v:l:", \%opts);
+getopts ("bdhCIPVcn:v:l:", \%opts);
 die Usage () if ($opts{h});
 
 my $where = 'Main Menu';
 my $MOD = ExtUtils::ModuleMaker->new
 			(
 				NAME			=> $opts{n},
+
 
 				COMPACT			=> (($opts{c}) ? 1 : 0),
 				VERBOSE			=> (($opts{V}) ? 1 : 0),
@@ -432,6 +482,7 @@ my $MOD = ExtUtils::ModuleMaker->new
 				NEED_POD		=> (($opts{P}) ? 0 : 1),
 				INTERACTIVE		=> (($opts{I}) ? 0 : 1),
 
+				(($opts{b}) ? (BUILD_SYSTEM	=> $opts{b}) : ()),
 				(($opts{v}) ? (VERSION		=> $opts{v}) : ()),
 				(($opts{l}) ? (LICENSE		=> $opts{l}) : ()),
 
@@ -457,6 +508,8 @@ if ($MOD->{INTERACTIVE}) {
 			$where = Copyright_Display ($MOD);
 		} elsif ($where eq 'Directives_Menu') {
 			$where = Directives_Menu ($MOD);
+		} elsif ($where eq 'Build Menu') {
+			$where = Build_Menu ($MOD);
 		} else {
 			$where = Main_Menu ($MOD);
 		}

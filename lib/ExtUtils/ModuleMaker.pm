@@ -11,7 +11,7 @@ BEGIN {
 	use vars qw ($VERSION @ISA @EXPORT);
 	@ISA		= qw (Exporter);
 	@EXPORT		= qw (&Generate_Module_Files &Quick_Module);
-	$VERSION     = 0.312_29;
+	$VERSION     = 0.32;
 }
 
 ########################################### main pod documentation begin ##
@@ -112,8 +112,7 @@ Will also support the older style separator "'" like the module D'Oh.
 
 =item ABSTRACT
 
-A short description of the module, this will be passed on to MakeMaker through Makefile.PL.
-CPAN likes to use this feature to describe the module.
+A short description of the module.  CPAN likes to use this feature to describe the module.
 
 =item VERSION
 
@@ -131,6 +130,18 @@ Other licenses can be added by individual module authors to ExtUtils::ModuleMake
 to keep your company lawyers happy.
 
 Some licenses include placeholders that will be replaced with AUTHOR information.
+
+=item BUILD_SYSTEM
+
+This can take one of three values.  These are 'ExtUtils::MakeMaker',
+'Module::Build', and 'Module::Build and Proxy'.  The first generates a
+basic Makefile.PL file for your module.  The second creates a Build.PL
+file, and the last creates a Build.PL along with a proxy Makefile.PL
+script that attempts to install Module::Build if necessary, and then
+runs the Build.PL script.  This option is recommended if you want to
+use Module::Build as your build system.  See Module::Build::Compat for
+more details.
+
 
 =item AUTHOR
 
@@ -271,6 +282,7 @@ sub default_values
 						EMAIL			=> 'a.u.thor@a.galaxy.far.far.away',
 						NAME			=> 'A. U. Thor',
 					   },
+					BUILD_SYSTEM		=> 'ExtUtils::MakeMaker',
 					COMPACT				=> 0,
 					VERBOSE				=> 0,
 					INTERACTIVE			=> 0,
@@ -361,7 +373,18 @@ sub complete_build
 	}
 
 	#Makefile must be created after generate_pm_file which sets $self->{FILE}
-	$self->print_file ('Makefile.PL',	$self->FileText_Makefile ());
+	if ($self->{BUILD_SYSTEM} eq 'ExtUtils::MakeMaker') {
+		$self->print_file ('Makefile.PL', $self->FileText_Makefile ());
+	} else {
+		$self->print_file ('Build.PL', $self->FileText_Buildfile ());
+		if ($self->{BUILD_SYSTEM} eq 'Module::Build and proxy Makefile.PL') {
+			$self->print_file ('Makefile.PL', $self->FileText_Proxy_Makefile ());
+		}
+	}
+
+
+
+
 	$self->print_file ('MANIFEST', join ("\n", @{$self->{MANIFEST}}));
 }
 
@@ -781,7 +804,7 @@ my $string = <<'EOFBLOCK';
 
 sub new
 {
-	my ($class, %parameters) = \@_;
+	my ($class, %parameters) = @_;
 
 	my $self = bless ({}, ref ($class) || $class);
 
@@ -962,6 +985,32 @@ sub FileText_README
 {
 	my ($self) = @_;
 
+
+
+
+	my $build_instructions;
+	if ($self->{BUILD_SYSTEM} eq 'ExtUtils::MakeMaker') {
+
+		$build_instructions = <<EOF;
+perl Makefile.PL
+make
+make test
+make install
+EOF
+
+	} else {
+
+		$build_instructions = <<EOF;
+perl Build.PL
+./Build
+./Build test
+./Build install
+EOF
+
+	}
+
+
+
 my $page = <<EOF;
 pod2text $self->{NAME}.pm > README
 
@@ -972,10 +1021,7 @@ You can create it now by using the command shown above from this directory.
 At the very least you should be able to use this set of instructions
 to install the module...
 
-perl Makefile.PL
-make
-make test
-make install
+$build_instructions
 
 If you are on a windows box you should use 'nmake' rather than 'make'.
 EOF
@@ -1078,6 +1124,11 @@ See Also   :
 sub FileText_Makefile
 {
 	my ($self) = @_;
+#	my $extras = join ("\n",
+#					   map { "    $_ => '$self->{EXTRAMAKE}{$_}'," }
+#					   keys %{$self->{EXTRAMAKE}}
+#					  ) if ((exists $self->{EXTRAMAKE}) &&
+#							(ref ($self->{EXTRAMAKE}) eq 'hash'));
 	
 my $page = <<EOF;
 use ExtUtils::MakeMaker;
@@ -1088,6 +1139,9 @@ WriteMakefile(
     VERSION_FROM => '$self->{FILE}', # finds \$VERSION
     AUTHOR       => '$self->{AUTHOR}{NAME} ($self->{AUTHOR}{EMAIL})',
     ABSTRACT     => '$self->{ABSTRACT}',
+    PREREQ_PM    => {
+                     'Test::Simple' => 0.44,
+                    },
 );
 EOF
 #	($] ge '5.005')
@@ -1097,6 +1151,109 @@ EOF
 #	 : (),
 
 	return ($page);
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_Buildfile
+
+ Usage     : $self->FileText_Buildfile ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   :
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_Buildfile
+{
+	my ($self) = @_;
+
+	# As of 0.15, Module::Build only allows a few licenses
+	my $license_line = 1 if $self->{LICENSE} =~ /^(?:perl|gpl|artistic)$/;
+
+my $page = <<EOF;
+use Module::Build;
+# See perldoc Module::Build for details of how this works
+
+Module::Build->new
+    ( module_name     => '$self->{NAME}',
+EOF
+
+	if ($license_line) {
+
+$page .= <<EOF;
+      license         => '$self->{LICENSE}',
+EOF
+
+	}
+
+$page .= <<EOF;
+    )->create_build_script;
+EOF
+
+	return ($page);
+
+}
+
+################################################ subroutine header begin ##
+
+=head2 FileText_Proxy_Makefile
+
+ Usage     : $self->FileText_Proxy_Makefile ()
+ Purpose   : Build a supporting file
+ Returns   : Text of the file being built
+ Argument  : n/a
+ Throws    : n/a
+ Comments  : This method is a likely candidate for alteration in a subclass
+
+See Also   :
+
+=cut
+
+################################################## subroutine header end ##
+
+sub FileText_Proxy_Makefile
+{
+       my ($self) = @_;
+
+# This comes directly from the docs for Module::Build::Compat
+my $page = <<'EOF';
+unless (eval "use Module::Build::Compat 0.02; 1" ) {
+  print "This module requires Module::Build to install itself.\n";
+
+  require ExtUtils::MakeMaker;
+  my $yn = ExtUtils::MakeMaker::prompt
+    ('  Install Module::Build from CPAN?', 'y');
+
+  if ($yn =~ /^y/i) {
+    require Cwd;
+    require File::Spec;
+    require CPAN;
+
+    # Save this 'cause CPAN will chdir all over the place.
+    my $cwd = Cwd::cwd();
+    my $makefile = File::Spec->rel2abs($0);
+
+    CPAN::Shell->install('Module::Build::Compat');
+
+    chdir $cwd or die "Cannot chdir() back to $cwd: $!";
+    exec $^X, $makefile, @ARGV;  # Redo now that we have Module::Build
+  } else {
+    warn " *** Cannot install without Module::Build.  Exiting ...\n";
+    exit 1;
+  }
+}
+Module::Build::Compat->run_build_pl(args => \@ARGV);
+Module::Build::Compat->write_makefile();
+EOF
+
+       return ($page);
 }
 
 ################################################ subroutine header begin ##

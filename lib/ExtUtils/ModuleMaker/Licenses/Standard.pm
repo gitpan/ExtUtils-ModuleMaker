@@ -5,7 +5,7 @@ use strict;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-	$VERSION     = 0.312_29;
+	$VERSION     = 0.32;
 	@ISA         = qw (Exporter);
 	#Give a hoot don't pollute, do not export more than needed by default
 	@EXPORT      = qw (&Get_Standard_License &Verify_Standard_License);
@@ -190,7 +190,7 @@ my %licenses =
 								 fullname => 'zlib/libpng License'
 							   },
 			 libpng			=> { function => \&License_ZLIB,
-								 fullname =>
+								 fullname => ''
 							   },
 #not yet installed
 #			 python_2_1_1	=> { function => undef,
@@ -296,7 +296,7 @@ $license{LICENSETEXT} = <<EOFLICENSETEXT;
 Apache Software License
 Version 1.1
 
-Copyright (c) 2000 The Apache Software Foundation. All rights reserved.
+Copyright (c) ###year### ###organization###. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

@@ -9,7 +9,7 @@ use ExtUtils::ModuleMaker;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA);
-	$VERSION     = 0.312_29;
+	$VERSION     = 0.32;
 	@ISA         = qw (Exporter ExtUtils::ModuleMaker);
 }
 
