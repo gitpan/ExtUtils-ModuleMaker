@@ -1,0 +1,18 @@
+Revision history for Perl extension ExtUtils::ModuleMaker.
+
+0.201_02  Fri Jul 27  2001
+	- Coming out party for the module at TPC 5.0
+	- Change name of module from ModuleMaker to ExtUtils::ModuleMaker
+	- Added Licences.pm including:
+	  - LICENSE file added to the manifest
+	  - Now support all 21 licenses approved by opensource.org
+	- Added simple tests
+	- Need to add INLINE hooks, XS hooks, and better testing
+
+0.2001+  Wed Jul 18  2001
+	- Minor housekeeping details
+
+0.2  Sun Jul 08 20:47:34 2001
+	- original version; created by ModuleMaker 0.2
+	- Amazingly incestuous isn't it.
+
