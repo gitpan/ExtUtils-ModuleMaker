@@ -7,7 +7,7 @@ use ExtUtils::ModuleMaker::Licenses;
 BEGIN {
 	use Exporter ();
 	use vars qw ($VERSION @ISA @EXPORT @EXPORT_OK);
-	$VERSION = 0.202;
+	$VERSION = "0.204";
 	@ISA		= qw (Exporter);
 	@EXPORT		= qw (&Generate_Module_Files &Quick_Module);
 	@EXPORT_OK	= qw ();
@@ -77,7 +77,7 @@ Send email to modulemaker@PlatypiVentures.com.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001 R. Geoffrey Avery. All rights reserved.
+Copyright (c) 2001-2002 R. Geoffrey Avery. All rights reserved.
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
 
@@ -135,9 +135,8 @@ sub Quick_Module
  Comments  : 
 
 See Also   : Verify_Data, Create_Changes, Create_Makefile, Create_README,
-           : Create_Module, Create_MANIFEST
-
-=head2 Generate_Module_Files
+           : Create_Module, Create_MANIFEST, Create_MANIFEST_SKIP,
+           : Create_cvsignore
 
 =over 4
 
@@ -204,9 +203,14 @@ The personal or organizational website of the author.
 =item EXTRA_MODULES
 
 An array of hashes that each contain values for NAME and ABSTRACT.  Each extra module will be created in
-the correct relative place in the <b>lib directory, but no extra supporting documents, like README or Changes.
+the correct relative place in the B<lib> directory, but no extra supporting documents, like README or Changes.
 
-This is one major improvement over the earlier <b>h2xs as you can now build multi module packages.
+This is one major improvement over the earlier B<h2xs> as you can now build multi module packages.
+
+=item compact
+
+For a module named "Foo::Bar::Baz" creates a base directory named "Foo-Bar-Baz"
+instead of Foo/Bar/Baz.
 
 =back
 
@@ -227,6 +231,9 @@ sub Generate_Module_Files
 	&Create_Changes  (\%module_data);
 	&Create_Makefile (\%module_data);
 	&Create_README   (\%module_data);
+
+	&Create_MANIFEST_SKIP (\%module_data);
+	&Create_cvsignore (\%module_data);
 
 	&Create_Module   (\%module_data);
 	foreach my $module (@{$module_data{'EXTRA_MODULES'}}) {
@@ -283,7 +290,8 @@ sub Verify_Data
 	die "Must give a 'NAME' for the module\n" unless ($p_module_data->{'NAME'});
 
 	$p_module_data->{'FILE'}     = join ('/', 'lib', split ('::', $p_module_data->{'NAME'}));
-	$p_module_data->{'Base_Dir'} = &Create_Base_Directory ($p_module_data->{'NAME'});
+	$p_module_data->{'Base_Dir'} = &Create_Base_Directory ($p_module_data->{'NAME'},
+							       $p_module_data->{compact});
 	$p_module_data->{'Next_Test_Number'} = 1;
 	$p_module_data->{'VERSION'} ||= 0.01;
 	$p_module_data->{'ABSTRACT'} = '' unless (exists ($p_module_data->{'ABSTRACT'}));
@@ -291,19 +299,19 @@ sub Verify_Data
 	$p_module_data->{'AUTHOR'} = {} unless (ref ($p_module_data->{'AUTHOR'}) eq 'HASH');
 	unless (exists ($p_module_data->{'AUTHOR'}{'NAME'})) {
 		$p_module_data->{'AUTHOR'}{'NAME'}    = 'A. U. Thor';
-		print "Using Default value for {'AUTHOR'}{'NAME'}\n";
+		print "Using default value for {'AUTHOR'}{'NAME'}:\t'$p_module_data->{'AUTHOR'}{'NAME'}'\n";
 	}
 	unless (exists ($p_module_data->{'AUTHOR'}{'EMAIL'})) {
 		$p_module_data->{'AUTHOR'}{'EMAIL'}   = 'a.u.thor@a.galaxy.far.far.away';
-		print "Using Default value for {'AUTHOR'}{'EMAIL'}\n";
+		print "Using default value for {'AUTHOR'}{'EMAIL'}:\t'$p_module_data->{'AUTHOR'}{'EMAIL'}'\n";
 	}
 	unless (exists ($p_module_data->{'AUTHOR'}{'CPANID'})) {
 		$p_module_data->{'AUTHOR'}{'CPANID'}  = '';
-		print "Using Default value for {'AUTHOR'}{'CPANID'}\n";
+		print "Using default value for {'AUTHOR'}{'CPANID'}:\t'$p_module_data->{'AUTHOR'}{'CPANID'}'\n";
 	}
 	unless (exists ($p_module_data->{'AUTHOR'}{'WEBSITE'})) {
 		$p_module_data->{'AUTHOR'}{'WEBSITE'} = 'http://a.galaxy.far.far.away/modules';
-		print "Using Default value for {'AUTHOR'}{'WEBSITE'}\n";
+		print "Using default value for {'AUTHOR'}{'WEBSITE'}:\t'$p_module_data->{'AUTHOR'}{'WEBSITE'}'\n";
 	}
 
 	&Get_License ($p_module_data);
@@ -331,16 +339,24 @@ See Also   : Check_Dir
 
 sub Create_Base_Directory
 {
-	my ($package_name) = @_;
-	my ($DIR, @package) = split ('::', $package_name);
+	my ($package_name, $compact) = @_;
+	my ($DIR, @package);
 
-	print STDERR "creating directory for '$DIR'\n";
-	&Check_Dir ($DIR);
+	if ($compact) {
+	    ($DIR = $package_name) =~ s/(::|\')/-/g;
+	    print STDERR "creating compact directory for '$DIR'\n";
+	    &Check_Dir ($DIR);
+	} else {
+	    ($DIR, @package) = split ('::', $package_name);
+
+	    print STDERR "creating directory for '$DIR'\n";
+	    &Check_Dir ($DIR);
 	
-	foreach (@package) {
+	    foreach (@package) {
 		$DIR = join ('/', $DIR, $_);
-		print STDERR "creating directory for '$DIR'\n";
+		print STDERR "creating directory for '$DIR'\n"; # if $VERBOSE
 		&Check_Dir ($DIR);
+	    }
 	}
 
 	return ($DIR);
@@ -550,6 +566,135 @@ EOF
 
 	close FILE;
 }
+
+################################################ subroutine header begin ##
+
+=head2 Create_MANIFEST_SKIP
+
+ Usage     : Create_MANIFEST_SKIP ($p_module_data);
+ Purpose   : Writes MANIFEST.SKIP which prevents the following tagets
+             `make install` and `make dist` from using distribution files,
+             editor backups, revision control (CVS & RCS) and dynamically-
+             created MakeMaker files & directories.
+ Returns   : n/a
+ Argument  : $p_module_data = hash with all the data
+ Throws    :
+ Comments  :
+ Author    : joshua@cpan.org
+
+The regular expressions, explained:
+
+=over 4
+
+=item ^Makefile$ - created by `perl Makefile.PL`
+
+=item ^blib/ - created by `make`
+
+=item ^Makefile\.[a-z]+$ - ignores `Makefile.old`
+
+=item ^pm_to_blib$ - created by `make`
+
+=item CVS/.* - CVS stores working dir info in the CVS directory
+
+=item ,v$ - RCS files
+
+=item ^te?mp/ - Temporary directory
+
+=item \.old$ - Makefile gets renamed to Makefile.old each time you `make`
+
+=item \.bak$ - Backup files
+
+=item ~$ - Editor-created file backup
+
+=item ^# - Editor-created file backup
+
+=item \.shar$ - `make shardist` distribution
+
+=item \.tar$ - `make tardist` distribution
+
+=item \.tgz$ - `make dist` distribution
+
+=item \.tar\.gz$ - `make dist` distribution
+
+=item \.zip$ - `make zipdist` distribution
+
+=item _uu$ - `make uutardist` distribution
+
+=back
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Create_MANIFEST_SKIP {
+	my ($p_module_data) = @_;
+
+	push (@{$p_module_data->{'MANIFEST'}}, 'MANIFEST.SKIP');
+
+	open (FILE, "> $p_module_data->{'Base_Dir'}/MANIFEST.SKIP")
+	    or die "Could not write MANIFEST.SKIP, $!";
+
+print FILE <<'EOF';
+^blib/
+^Makefile$
+^Makefile\.[a-z]+$
+^pm_to_blib$
+CVS/.*
+,v$
+^tmp/
+\.old$
+\.bak$
+~$
+^#
+\.shar$
+\.tar$
+\.tgz$
+\.tar\.gz$
+\.zip$
+_uu$
+EOF
+	close FILE;
+}
+
+
+################################################ subroutine header begin ##
+
+=head2 Create_cvsignore
+
+ Usage     : Create_cvsignore ($p_module_data);
+ Purpose   : Writes .cvsignore. Prevents MakeMaker's dynamically-
+             created files from getting checked into CVS (or listed
+             during `cvs update`.
+ Returns   : n/a
+ Argument  : $p_module_data = hash with all the data
+ Throws    :
+ Comments  :
+ Author    : joshua@cpan.org
+
+See Also   :
+
+=cut
+
+################################################## subroutine header end ##
+
+sub Create_cvsignore {
+	my ($p_module_data) = @_;
+
+	push (@{$p_module_data->{'MANIFEST'}}, '.cvsignore');
+
+	open (FILE, "> $p_module_data->{'Base_Dir'}/.cvsignore")
+	    or die "Could not write .cvsignore, $!";
+
+print FILE <<EOF;
+blib
+Makefile
+pm_to_blib
+EOF
+
+	close FILE;
+}
+
+
 
 ################################################ subroutine header begin ##
 

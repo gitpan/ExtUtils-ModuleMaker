@@ -1,5 +1,16 @@
 Revision history for Perl extension ExtUtils::ModuleMaker.
 
+0.204 Wed May 29 2002
+	- eumm swapped 'our' variables for 'use vars' to work with perl older than 5.6.0
+
+0.202_02 Wed May 29 2002 - joshua@cpan.org
+	- New feature: create compact base directories
+	- New program: eumm (name TBD) frontend.
+
+0.202_01 Sat May 25 2002 - joshua@cpan.org
+	- Creates .cvsignore
+	- Creates MANIFEST.SKIP
+
 0.202  Fri Dec 28  2001
 	- Fixed typo on line 134 of Licences.pm
 
@@ -18,4 +29,3 @@ Revision history for Perl extension ExtUtils::ModuleMaker.
 0.2  Sun Jul 08 20:47:34 2001
 	- original version; created by ModuleMaker 0.2
 	- Amazingly incestuous isn't it.
-

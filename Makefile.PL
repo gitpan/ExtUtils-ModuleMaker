@@ -5,5 +5,6 @@ WriteMakefile(
     NAME         => 'ExtUtils::ModuleMaker',
     VERSION_FROM => 'lib/ExtUtils/ModuleMaker.pm', # finds $VERSION
     AUTHOR       => 'R. Geoffrey Avery (modules@PlatypiVentures.com)',
-    ABSTRACT     => 'A simple replacement for h2xs -XA'
+    ABSTRACT     => 'A simple replacement for h2xs -XA',
+    EXE_FILES    => [ 'script/eumm' ],
 );

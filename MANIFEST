@@ -1,11 +1,14 @@
+.cvsignore
 Changes
+LICENSE
+MANIFEST
+MANIFEST.SKIP
 Makefile.PL
 README
-LICENSE
 lib/ExtUtils/ModuleMaker.pm
 lib/ExtUtils/ModuleMaker/Licenses.pm
+script/eumm
 t/01_ini.t
 t/02_ini_licenses.t
 t/03_quick.t
 t/04_longer.tx
-MANIFEST
