@@ -1,45 +1,50 @@
-# t/02_simple.t; A very simple module to make sure the parts are created
+# t/03_quick.t
 
-use Test::More qw/no_plan/;
-#use Test::More tests => 11;
+use Test::More tests => 15;
+use strict;
+local $^W = 1;
 
 BEGIN { use_ok( 'ExtUtils::ModuleMaker' ); }
-ok (chdir 'blib/testing' || chdir '../blib/testing', "chdir 'blib/testing'");
+BEGIN { use_ok( 'File::Temp', qw| tempdir |); }
+
+my $tdir = tempdir( CLEANUP => 1);
+ok(chdir $tdir, 'changed to temp directory for testing');
 
 ###########################################################################
 
-my $MOD;
+my $mod;
 
-ok ($MOD  = ExtUtils::ModuleMaker->new
-			(
-				NAME		=> 'Sample::Module',
-			),
-	"call ExtUtils::ModuleMaker->new");
-	
-ok ($MOD->complete_build (),
-	"call $MOD->complete_build");
+ok($mod  = ExtUtils::ModuleMaker->new (
+                NAME        => 'Sample::Module',
+    ),
+    "call ExtUtils::ModuleMaker->new for Sample-Module");
+    
+ok( $mod->complete_build(), 'call complete_build()' );
 
-###########################################################################
+########################################################################
 
-ok (chdir 'Sample/Module',
-	"cd Sample/Module");
+ok(chdir 'Sample/Module',
+    "cd Sample/Module");
 
-#        MANIFEST.SKIP .cvsignore
 for (qw/Changes MANIFEST Makefile.PL LICENSE
-		README lib t/) {
+        README lib t/) {
     ok (-e,
-		"$_ exists");
+        "$_ exists");
 }
 
-###########################################################################
+########################################################################
 
-ok (open (FILE, 'LICENSE'),
-	"reading 'LICENSE'");
-my $filetext = do {local $/; <FILE>};
-close FILE;
+my $filetext;
+{
+    local *FILE;
+    ok(open (FILE, 'LICENSE'),
+        "reading 'LICENSE'");
+    $filetext = do {local $/; <FILE>};
+    close FILE;
+}
 
-ok ($filetext =~ m/Terms of Perl itself/,
-	"correct LICENSE generated");
+ok($filetext =~ m/Terms of Perl itself/,
+    "correct LICENSE generated");
 
-###########################################################################
+########################################################################
 

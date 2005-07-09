@@ -1,21 +1,21 @@
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
+
 WriteMakefile(
     NAME         => 'ExtUtils::ModuleMaker',
     VERSION_FROM => 'lib/ExtUtils/ModuleMaker.pm', # finds $VERSION
-    AUTHOR       => 'R. Geoffrey Avery (modulemaker@PlatypiVentures.com)',
+#    AUTHOR       => 'R. Geoffrey Avery (modulemaker@PlatypiVentures.com)',
+    AUTHOR       => 'James E Keenan (jkeenan@cpan.org)',
     ABSTRACT     => 'A simple replacement for h2xs -XA',
-	EXE_FILES    => [
-						'scripts/modulemaker',
-					],
+    EXE_FILES    => [
+                        'scripts/modulemaker',
+                    ],
     PREREQ_PM    => {
-						Test::More      => 0.44,
-						Getopt::Std		=> 0, # in the Perl core
-						Getopt::Long    => 0, # in the Perl core
-						File::Basename	=> 0, # in the Perl core
-						File::Path		=> 0, # in the Perl core
-					},
+                        Test::More      => 0.44,
+                        Getopt::Std     => 0, # in the Perl core
+                        File::Basename  => 0, # in the Perl core
+                        File::Path      => 0, # in the Perl core
+                        File::Temp      => 0, # in the Perl core since 5.6
+                    },
 );
 
 
@@ -31,13 +31,13 @@ use ExtUtils::MakeMaker;
 my $where = `pwd`;
 
 if ($^O eq "MSWin32") {
-	my @parts = split (/\\/, $where);
-	pop (@parts);
-	$where = join ('\\', @parts, 'testplace');
+    my @parts = split (/\\/, $where);
+    pop (@parts);
+    $where = join ('\\', @parts, 'testplace');
 } else {
-	my @parts = split ("/", $where);
-	pop (@parts);
-	$where = join ('/', @parts, 'testplace');
+    my @parts = split ("/", $where);
+    pop (@parts);
+    $where = join ('/', @parts, 'testplace');
 }
 
 WriteMakefile(
@@ -45,19 +45,17 @@ WriteMakefile(
     VERSION_FROM => 'lib/ExtUtils/ModuleMaker.pm', # finds $VERSION
     AUTHOR       => 'R. Geoffrey Avery (modulemaker@PlatypiVentures.com)',
     ABSTRACT     => 'A simple replacement for h2xs -XA',
-	EXE_FILES    => [
-#						'scripts/newmodule',
-#						'scripts/newmodulelong',
-						'scripts/modulemaker',
-					],
+    EXE_FILES    => [
+                        'scripts/modulemaker',
+                    ],
     PREREQ_PM    => {
-						Test::More      => 0.44,
-						Getopt::Std		=> 0, # in the Perl core
-						Getopt::Long    => 0, # in the Perl core
-						File::Basename	=> 0, # in the Perl core
-						File::Path		=> 0, # in the Perl core
-					},
+                        Test::More      => 0.44,
+                        Getopt::Std        => 0, # in the Perl core
+                        Getopt::Long    => 0, # in the Perl core
+                        File::Basename    => 0, # in the Perl core
+                        File::Path        => 0, # in the Perl core
+                    },
 
-	(map { $_ => $where } qw (PREFIX INSTALLSITELIB INSTALLSCRIPT)),
+    (map { $_ => $where } qw (PREFIX INSTALLSITELIB INSTALLSCRIPT)),
 
 );
