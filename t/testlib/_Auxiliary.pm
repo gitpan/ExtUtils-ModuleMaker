@@ -1,6 +1,6 @@
 package _Auxiliary;
 # Contains test subroutines for distribution with ExtUtils::ModuleMaker
-# As of:  July 4, 2005
+# As of:  July 17, 2005
 use strict;
 use warnings;
 use vars qw| @ISA @EXPORT_OK |; 
@@ -10,9 +10,11 @@ require Exporter;
     read_file_string
     read_file_array
     six_file_tests
+    check_MakefilePL 
 ); 
 *ok = *Test::More::ok;
 *is = *Test::More::is;
+*like = *Test::More::like;
 
 sub read_file_string {
     my $file = shift;
@@ -53,6 +55,25 @@ sub six_file_tests {
             |xs,
         'POD contains correct author info');
 } 
+
+sub check_MakefilePL {
+    my ($topdir, $predictref) = @_;
+    my @pred = @$predictref;
+
+    my $mkfl = "$topdir/Makefile.PL";
+    local *MAK;
+    open MAK, $mkfl or die "Unable to open Makefile.PL: $!";
+    my $bigstr;
+    {    local $/; $bigstr = <MAK>; }
+    like($bigstr, qr/
+            NAME.+($pred[0]).+
+            VERSION_FROM.+($pred[1]).+
+            AUTHOR.+($pred[2]).+
+            ($pred[3]).+
+            ABSTRACT.+($pred[4]).+
+        /sx, "Makefile.PL has predicted values");
+    close MAK;
+}
 
 1;
 

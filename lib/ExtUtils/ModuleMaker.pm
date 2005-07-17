@@ -2,21 +2,40 @@ package ExtUtils::ModuleMaker;
 use strict;
 local $^W = 1;
 use vars qw ($VERSION);
-$VERSION = 0.33;
+$VERSION = 0.35;
 
 use ExtUtils::ModuleMaker::Licenses::Standard;
 use ExtUtils::ModuleMaker::Licenses::Local;
 use File::Path;
+use Carp;
+
+#################### PACKAGE VARIABLES #################### 
 
 #################### PUBLICLY CALLABLE METHODS ####################
 
 #!#!#!#!#
 ##   2 ##
 sub new {
-#    my ( $class, $paramsref ) = @_;
-#    my %parameters = %{$paramsref};
-    my ( $class, %parameters ) = @_;
-    my $self = bless( default_values(), ref($class) || $class );
+    my ( $class, @arglist ) = @_;
+    local $_;
+    croak "Must be hash or balanced list of key-value pairs: $!"
+        if (@arglist % 2);
+    my %parameters = @arglist;
+    my @badkeys;
+    my %keys_forbidden = map {$_, 1} qw|
+        CPANID
+        ORGANIZATION
+        WEBSITE
+        EMAIL
+    |;
+    for (keys %parameters) {
+        push(@badkeys, $_) if $keys_forbidden{$_};
+    }
+    croak "@badkeys improper top-level key: $!"
+        if (@badkeys);
+
+    my $self = ref($class) ? bless( default_values(), ref($class) )
+                           : bless( default_values(), $class );
     foreach my $param ( keys %parameters ) {
         if ( ref( $parameters{$param} ) eq 'HASH' ) {
             foreach ( keys( %{ $parameters{$param} } ) ) {
@@ -28,11 +47,14 @@ sub new {
         }
     }
 
+#    if ($self->{INTERACTIVE}) { print STDERR "Get data interactively!\n"; }
     $self->set_author_data();
     $self->set_dates();
     $self->initialize_license();
 
     $self->{MANIFEST} = ['MANIFEST'];
+    $self->verify_values();
+
     return ($self);
 }
 
@@ -40,8 +62,6 @@ sub new {
 ##   7 ##
 sub complete_build {
     my $self = shift;
-
-    $self->verify_values();
 
     $self->create_base_directory();
     $self->check_dir( map { "$self->{Base_Dir}/$_" } qw (lib t scripts) );
@@ -69,8 +89,7 @@ sub complete_build {
     }
     else {
         $self->print_file( 'Build.PL', $self->file_text_Buildfile() );
-#        if ( $self->{BUILD_SYSTEM} eq 'Module::Build and proxy Makefile.PL' ) {
-	if ( $self->{BUILD_SYSTEM} eq 'Module::Build and proxy Makefile.PL' 
+        if ( $self->{BUILD_SYSTEM} eq 'Module::Build and proxy Makefile.PL' 
          or  $self->{BUILD_SYSTEM} eq 'Module::Build and Proxy') {
             $self->print_file( 'Makefile.PL',
                 $self->file_text_proxy_makefile() );
@@ -95,14 +114,14 @@ sub complete_build {
 #             are encapsulated within a subroutine rather than creating
 #             a file-scoped lexical. 
 sub default_values {
+    # NAME key is intentionally missing; must cause fatal error
     my %defaults = (
-        NAME     => 'None yet',
         LICENSE  => 'perl',
         VERSION  => 0.01,
         ABSTRACT => 'Module abstract (<= 44 characters) goes here',
         AUTHOR   => {
             NAME         => 'A. U. Thor',
-	    CPANID       => 'AUTHOR',
+            CPANID       => 'AUTHOR',
             ORGANIZATION => 'XYZ Corp.',
             WEBSITE      => 'http://a.galaxy.far.far.away/modules',
             EMAIL        => 'a.u.thor@a.galaxy.far.far.away',
@@ -137,21 +156,22 @@ ENDOFUSAGE
 # Throws    : Will die with a death_message if errors and not interactive.
 # Comments  : 
 sub verify_values {
-    my ($self) = @_;
+    my $self = shift;
     my @errors;
 
     push( @errors, 'NAME is required' )
       unless ( $self->{NAME} );
+    push( @errors, 'Module NAME contains illegal characters' )
+      unless ( $self->{NAME} and $self->{NAME} =~ m/^[\w:]+$/ );
     push( @errors, 'ABSTRACTs are limited to 44 characters' )
       if ( length( $self->{ABSTRACT} ) > 44 );
     push( @errors, 'CPAN IDs are 3-9 characters' )
-      if ( ( exists( $self->{AUTHOR}{CPANID} ) )
-        && ( $self->{AUTHOR}{CPANID} !~ m/^\w{3,9}$/ ) );
+      if ( $self->{AUTHOR}{CPANID} !~ m/^\w{3,9}$/ );
     push( @errors, 'EMAIL addresses need to have an at sign' )
       if ( $self->{AUTHOR}{EMAIL} !~ m/.*\@.*/ );
     push( @errors, 'WEBSITEs should start with an "http:" or "https:"' )
       if ( $self->{AUTHOR}{WEBSITE} !~ m/https?:\/\/.*/ );
-    push( @errors, 'LICENSE is not recognized"' )
+    push( @errors, 'LICENSE is not recognized' )
       unless ( Verify_Local_License( $self->{LICENSE} )
         || Verify_Standard_License( $self->{LICENSE} ) );
 
@@ -166,35 +186,41 @@ sub generate_pm_file {
 
     $self->create_pm_basics($module);
 
-    my $page = $self->block_begin($module) .
-
-      (
-        ( $self->module_value( $module, 'NEED_POD' ) )
-        ? $self->block_module_header($module)
-        : ()
-      )
-      .
-
-      (
-        (
-                 ( $self->module_value( $module, 'NEED_POD' ) )
-              && ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
-        )
-        ? $self->block_subroutine_header($module)
-        : ()
-      )
-      .
-
-      (
-        ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
-        ? $self->block_new_method($module)
-        : ()
-      )
-      .
-
-      $self->block_final_one($module);
+    my $page = $self->build_page($module);
 
     $self->print_file( $module->{FILE}, $page );
+}
+
+sub build_page {
+    my $self = shift;
+    my $module = shift;
+      
+    my $page = $self->block_begin($module);
+    $page .= (
+         ( $self->module_value( $module, 'NEED_POD' ) )
+         ? $self->block_module_header($module)
+         : ''
+    );
+
+    $page .= (
+         (
+            (
+                 ( $self->module_value( $module, 'NEED_POD' ) )
+              && ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
+            )
+            ? $self->block_subroutine_header($module)
+         : ''
+	 )
+    );
+
+    $page .= (
+        ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
+        ? $self->block_new_method($module)
+         : ''
+    );
+
+    $page .= $self->block_final_one($module);
+    return ($module, $page);
 }
 
 #!#!#!#!#
@@ -209,16 +235,16 @@ sub set_dates {
 #!#!#!#!#
 ##  11 ##
 sub set_author_data {
-    my ($self) = @_;
+    my $self = shift;
 
-    my $p_author = $self->{AUTHOR};
-    $p_author->{COMPOSITE} = (
+    $self->{AUTHOR}->{COMPOSITE} = (
         "\t"
          . join( "\n\t",
-            $p_author->{NAME},
-            ( $p_author->{CPANID} ) ? "CPAN ID: $p_author->{CPANID}" : (),
-            ( $p_author->{ORGANIZATION} ) ? "$p_author->{ORGANIZATION}" : (),
-            $p_author->{EMAIL}, $p_author->{WEBSITE}, ),
+            $self->{AUTHOR}->{NAME},
+            "CPAN ID: $self->{AUTHOR}->{CPANID}", # will need to be modified
+            $self->{AUTHOR}->{ORGANIZATION},  # if defaults no longer provided
+            $self->{AUTHOR}->{EMAIL}, 
+	    $self->{AUTHOR}->{WEBSITE}, ),
     );
 }
 
@@ -234,7 +260,7 @@ sub create_base_directory {
     my $self = shift;
 
     $self->{Base_Dir} =
-      join( ( $self->{COMPACT} ) ? '-' : '/', split( /::|'/, $self->{NAME} ) );
+      join( ( $self->{COMPACT} ) ? '-' : '/', split( /::/, $self->{NAME} ) );
     $self->check_dir( $self->{Base_Dir} );
 }
 
@@ -242,7 +268,7 @@ sub create_base_directory {
 ##  14 ##
 sub create_pm_basics {
     my ( $self, $module ) = @_;
-    my @layers = split( /::|'/, $module->{NAME} );
+    my @layers = split( /::/, $module->{NAME} );
     my $file   = pop(@layers);
     my $dir    = join( '/', 'lib', @layers );
 
@@ -253,7 +279,7 @@ sub create_pm_basics {
 #!#!#!#!#
 ##  15 ##
 sub initialize_license {
-    my ($self) = @_;
+    my $self = shift;
 
     $self->{LICENSE} = lc( $self->{LICENSE} );
 
@@ -327,10 +353,20 @@ sub check_dir {
 ##  20 ##
 sub death_message {
     my $self = shift;
+    my @errors = @_;
 
-    die( join "\n", @_, '', $self->{USAGE_MESSAGE} )
+    croak( join "\n", @errors, '', $self->{USAGE_MESSAGE} )
       unless $self->{INTERACTIVE};
-    print( join "\n", 'Oops, there are the following errors:', @_, '', '' );
+    my %err = map {$_, 1} @errors;
+    delete $err{'NAME is required'} if $err{'NAME is required'};
+    @errors = keys %err;
+    if (@errors) {
+        print( join "\n", 
+            'Oops, there are the following errors:', @errors, '' );
+        return 1;
+    } else {
+        return (); # because verify_values() returns empty list if AOK
+    }
 }
 
 #!#!#!#!#
@@ -550,7 +586,6 @@ sub block_final_one {
     my $string = <<EOFBLOCK;
 
 1; #this line is important and will help the module return a true value
-__END__
 
 EOFBLOCK
 
@@ -566,7 +601,7 @@ EOFBLOCK
 # Throws    : n/a
 # Comments  : This method is a likely candidate for alteration in a subclass
 sub file_text_README {
-    my ($self) = @_;
+    my $self = shift;
 
     my $build_instructions;
     if ( $self->{BUILD_SYSTEM} eq 'ExtUtils::MakeMaker' ) {
@@ -651,7 +686,7 @@ EOF
 # Throws    : n/a
 # Comments  : This method is a likely candidate for alteration in a subclass
 sub file_text_ToDo {
-    my ($self) = @_;
+    my $self = shift;
 
     my $page = <<EOF;
 TODO list for Perl module $self->{NAME}
@@ -673,22 +708,28 @@ EOF
 # Throws    : n/a
 # Comments  : This method is a likely candidate for alteration in a subclass
 sub file_text_Makefile {
-    my ($self) = @_;
-    my $page = <<EOF;
+    my $self = shift;
+    my $page = sprintf q~
+
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 WriteMakefile(
-    NAME         => '$self->{NAME}',
-    VERSION_FROM => '$self->{FILE}', # finds \$VERSION
-    AUTHOR       => '$self->{AUTHOR}{NAME} ($self->{AUTHOR}{EMAIL})',
-    ABSTRACT     => '$self->{ABSTRACT}',
+    NAME         => '%s',
+    VERSION_FROM => '%s', # finds \$VERSION
+    AUTHOR       => '%s (%s)',
+    ABSTRACT     => '%s',
     PREREQ_PM    => {
                      'Test::Simple' => 0.44,
                     },
 );
-EOF
-    return ($page);
+~,  map { my $s = $_; $s =~ s{'}{\\'}g; $s; }
+    $self->{NAME},
+    $self->{FILE},
+    $self->{AUTHOR}{NAME},
+    $self->{AUTHOR}{EMAIL},
+    $self->{ABSTRACT};
+    return $page;
 }
 
 #!#!#!#!#
@@ -700,7 +741,7 @@ EOF
 # Throws    : n/a
 # Comments  : This method is a likely candidate for alteration in a subclass
 sub file_text_Buildfile {
-    my ($self) = @_;
+    my $self = shift;
 
     # As of 0.15, Module::Build only allows a few licenses
     my $license_line = 1 if $self->{LICENSE} =~ /^(?:perl|gpl|artistic)$/;
@@ -738,7 +779,7 @@ EOF
 # Throws    : n/a
 # Comments  : This method is a likely candidate for alteration in a subclass
 sub file_text_proxy_makefile {
-    my ($self) = @_;
+    my $self = shift;
 
     # This comes directly from the docs for Module::Build::Compat
     my $page = <<'EOF';
@@ -828,8 +869,19 @@ EOF
     return ($page);
 }
 
+sub partial_dump {
+    my $self = shift;
+    my %keys_not_shown = map {$_, 1} @_;
+    require Data::Dumper;
+    my ($k, $v, %retry);
+    while ( ($k, $v) = each %{$self} ) {
+        $retry{$k} = $v unless $keys_not_shown{$k};
+    }
+    my $d = Data::Dumper->new( [\%retry] );
+    return $d->Dump;
+}
+
 1;    #this line is important and will help the module return a true value
-__END__
 
 #################### DOCUMENTATION ####################
 
@@ -848,6 +900,11 @@ ExtUtils::ModuleMaker - Better than h2xs for creating modules
         NAME => 'Sample::Module' 
     );
     $mod->complete_build();
+
+=head1 VERSION
+
+This document references version 0.35 of ExtUtils::ModuleMaker, released
+to CPAN on July 17, 2005.
 
 =head1 DESCRIPTION
 
@@ -886,10 +943,12 @@ F<modulemaker> bundled with this distribution.
 
 =head2 Usage within a Perl script
 
+=head3 Public Methods
+
 In this version of ExtUtils::ModuleMaker there are only two publicly 
 callable functions.  These are how you should interact with this module.
 
-=head3 C<new>
+=head4 C<new>
 
 Creates and returns an ExtUtils::ModuleMaker object.  Takes a list 
 containing key-value pairs with information specifying the
@@ -903,13 +962,17 @@ is probably best held in a hash.   Keys which may be specified are:
 =item * NAME
 
 The I<only> required feature.  This is the name of the primary module 
-(with 'C<::>' separators if needed).  Will also support the older style 
-separator ''C<'>'' like the module F<D'Oh>.  Current default is 'None yet'. 
+(with 'C<::>' separators if needed).  Will no longer support the older,
+Perl 4-style separator ''C<'>'' like the module F<D'Oh>.  There is no 
+current default for NAME.
 
 =item * ABSTRACT
 
 A short (44-character maximum) description of the module.  CPAN likes 
-to use this feature to describe the module.
+to use this feature to describe the module.  If the abstract contains an
+apostrophe (C<'>), then the value corresponding to key C<ABSTRACT> in
+the list passed to the constructor must be double-quoted; otherwise
+F<Makefile.PL> gets messed up.
 
 =item * VERSION
 
@@ -944,7 +1007,7 @@ The first generates a basic Makefile.PL file for your module.
 
 The second creates a Build.PL file.
 
-=item * C<Module::Build and Proxy>
+=item * C<'Module::Build and Proxy'>
 
 The third creates a Build.PL along with a proxy Makefile.PL
 script that attempts to install Module::Build if necessary, and then
@@ -971,11 +1034,16 @@ necessary places in the files.
 
 =item * NAME
 
-Name of the author.
+Name of the author.  If the author's name contains an apostrophe (C<'>), 
+then the corresponding value in the list passed to the constructor must 
+be double-quoted; otherwise F<Makefile.PL> gets messed up.
 
 =item * EMAIL
 
-Email address of the author.
+Email address of the author.  If the author's e-mail address contains 
+an apostrophe (C<'>), then the corresponding value in the list passed 
+to the constructor must be double-quoted; otherwise
+F<Makefile.PL> gets messed up.
 
 =item * CPANID
 
@@ -1045,28 +1113,79 @@ Don't include a 'Changes' file, but instead add a HISTORY section to the POD.
 
 =back
 
-=head3 C<complete_build>
+=head4 C<complete_build>
 
 Creates all directories and files as configured by the key-value pairs
 passed to C<ExtUtils::ModuleMaker::new>.  Returns a
 true value if all specified files are created -- but this says nothing
 about whether those files have been created with the correct content.
 
-=head1 SUPPORT
+=head3 Private Methods
 
-Send email to jkeenan [at] cpan [dot] org.  Please include 'modulemaker'
-in the subject line.
+There are a variety of other ExtUtil::ModuleMaker methods which are not
+currently in the public interface.  They are available for you to hack
+on, but, as they are primarily used within C<new()> and
+C<complete_build()>, their implementation and interface may change in
+the future.  See the code for inline documentation.
 
-=head1 AUTHOR
+=head1 CAVEATS
+
+=over 4
+
+=item * Tests Require Perl 5.6
+
+While the maintainer has attempted to make the code in
+F<lib/ExtUtils/Modulemaker.pm> and the F<modulemaker> utility compatible
+with versions of Perl older than 5.6, the test suite currently requires
+5.6 or later.  Eventually, we'll put those tests which absolutely
+require 5.6 or later into SKIP blocks so that the tests will run cleanly
+on 5.4 or 5.5.
+
+=item * Testing of F<modulemaker>'s Interactive Mode
+
+The easiest, laziest and recommended way of using this distribution is
+the command-line utility F<modulemaker>, especially its interactive
+mode.  However, this is necessarily the most difficult test, as its
+testing would require capturing the STDIN, STDOUT and STDERR for a
+process spawned by a C<system('modulemaker')> call from within a test
+file.  For now, the maintainer has relied on repeated visual inspection
+of the screen prompts generated by F<modulemaker>.
+
+=item * Testing F<modulemaker> on Non-*nix-Like Operating Systems
+
+Since testing the F<modulemaker> utility from within the test suite
+requires a C<system()> call, a clean test run depends in part on the way
+a given operating system parses command-line arguments.  The maintainer
+has tested this on Darwin and Win32 and, thanks to a suggestion by A.
+Sinan Unur, solved a problem on Win32.  Results on other operating
+systems may differ; feedback is welcome.
+
+=back
+
+=head1 AUTHOR/MAINTAINER
 
 ExtUtils::ModuleMaker was originally written in 2001-02 by R. Geoffrey Avery
 (modulemaker [at] PlatypiVentures [dot] com).  Since version 0.33 (July
 2005) it has been maintained by James E. Keenan (jkeenan [at] cpan [dot]
 org).
 
+=head1 SUPPORT
+
+Send email to jkeenan [at] cpan [dot] org.  Please include 'modulemaker'
+in the subject line.
+
+=head1 ACKNOWLEDGMENTS
+
+Thanks to Geoff Avery for inventing and popularizing
+ExtUtils::Modulemaker.  Thanks for bug reports and fixes to David A
+Golden and an anonymous guest on rt.cpan.org.  Thanks for suggestions
+about testing the F<modulemaker> utility to Michael G Schwern on perl.qa
+and A Sinan Unur and Paul Lalli on comp.lang.perl.misc.
+
 =head1 COPYRIGHT
 
-Copyright (c) 2001-2002 R. Geoffrey Avery. All rights reserved.
+Copyright (c) 2001-2002 R. Geoffrey Avery.
+Revisions from v0.33 forward (c) 2005 James E. Keenan.  All rights reserved.
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
 
@@ -1078,3 +1197,4 @@ LICENSE file included with this module.
 F<modulemaker>, F<perlnewmod>, F<h2xs>, F<ExtUtils::MakeMaker>.
 
 =cut
+

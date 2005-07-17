@@ -6,15 +6,18 @@ MANIFEST
 MANIFEST.SKIP
 # .cvsignore
 t/01_ini.t
+t/02_bad_constructor.t
 t/03_quick.t
 t/04_compact.t
 t/05_abstract.t
 t/06_build.t
 t/07_proxy.t
-t/08_modulemaker.t
+t/09_mmkr.t
+t/11_miscargs.t
 t/testlib/_Auxiliary.pm
 scripts/modulemaker
 lib/ExtUtils/ModuleMaker.pm
+lib/ExtUtils/ModuleMaker/Interactive.pm
 lib/ExtUtils/ModuleMaker/SecondStyle.pm
 lib/ExtUtils/ModuleMaker/Licenses/Standard.pm
 lib/ExtUtils/ModuleMaker/Licenses/Local.pm
