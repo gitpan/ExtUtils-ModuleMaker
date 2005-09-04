@@ -1,78 +1,92 @@
 #!/usr/local/bin/perl
-
+# modulemaker:  command-line utility implementing ExtUtils::ModuleMaker
 eval 'exec /usr/local/bin/perl  -S $0 ${1+"$@"}'
   if 0;    # not running under some shell
-
 use strict;
 local $^W = 1;
-
 use Getopt::Std;
-use ExtUtils::ModuleMaker 0.34;
-use ExtUtils::ModuleMaker::Interactive qw| run_interactive |;
+use ExtUtils::ModuleMaker;
+use ExtUtils::ModuleMaker::Interactive;
+use Carp;
+use vars qw ( $VERSION );
+use Data::Dumper;
 
-use vars qw (%opts $VERSION);
+$VERSION = '0.37';
 
-$VERSION = 0.36;
+##### Index of Variables (Aug 18 2005) #####
+# %opts
+# $MOD
 
-getopts( "bdhqCIPVcn:a:v:l:u:p:o:w:e:", \%opts );
-die Usage() if ( $opts{h} );
+##### Index of Subroutines (Aug 18 2005) #####
+# USAGE()
 
-my %AUTHOR = (
-    NAME         => ($opts{u} ? $opts{u} : 'A. U. Thor'),
-    CPANID       => ($opts{p} ? $opts{p} : 'AUTHOR'),
-    ORGANIZATION => ($opts{o} ? $opts{o} : 'XYZ Corp.'),
-    WEBSITE      => ($opts{w} ? $opts{w} : 'http://a.galaxy.far.far.away/modules'),
-    EMAIL        => ($opts{e} ? $opts{e} : 'a.u.thor@a.galaxy.far.far.away'),
-);
+##### Sources of Methods (Aug 18 2005) #####
+##### ExtUtils::ModuleMaker
+# new
+# complete_build
 
-my $MOD   = ExtUtils::ModuleMaker->new(
-    COMPACT          => ( ( $opts{c} ) ? 1 : 0 ),
-    VERBOSE          => ( ( $opts{V} ) ? 1 : 0 ),
-    CHANGES_IN_POD   => ( ( $opts{C} ) ? 1 : 0 ),
-    NEED_POD         => ( ( $opts{P} ) ? 0 : 1 ),
-    NEED_NEW_METHOD  => ( ( $opts{q} ) ? 0 : 1 ),
+##### ExtUtils::ModuleMaker::Interactive
+# run_interactive()
+# closing_message()
+
+##### START LIVE CODE #####
+
+my %opts;
+getopts( "bhqsCIPVcn:a:v:l:u:p:o:w:e:t:r:d:", \%opts );
+croak Usage() if ( $opts{h} );
+
+# print Dumper(\%opts);
+
+my %standard_options = (
+    ( ( $opts{c} ) ? ( COMPACT               => $opts{c} ) : () ),
+    ( ( $opts{V} ) ? ( VERBOSE               => $opts{V} ) : () ),
+    ( ( $opts{C} ) ? ( CHANGES_IN_POD        => $opts{C} ) : () ),
+    ( ( $opts{P} ) ? ( NEED_POD              => 0        ) : () ),
+    ( ( $opts{q} ) ? ( NEED_NEW_METHOD       => 0        ) : () ),
+#    ( ( $opts{I} ) ? ( INTERACTIVE           => 0        ) : 1  ),
     INTERACTIVE      => ( ( $opts{I} ) ? 0 : 1 ),
-    ( ( $opts{n} ) ? ( NAME         => $opts{n} ) : () ),
-    ( ( $opts{a} ) ? ( ABSTRACT     => $opts{a} ) : () ),
-    ( ( $opts{b} ) ? ( BUILD_SYSTEM => $opts{b} ) : () ),
-    ( ( $opts{v} ) ? ( VERSION      => $opts{v} ) : () ),
-    ( ( $opts{l} ) ? ( LICENSE      => $opts{l} ) : () ),
-    AUTHOR => \%AUTHOR,
+    ( ( $opts{s} ) ? ( SAVE_AS_DEFAULTS      => $opts{s} ) : () ),
+    
+    ( ( $opts{n} ) ? ( NAME                  => $opts{n} ) : () ),
+    ( ( $opts{a} ) ? ( ABSTRACT              => $opts{a} ) : () ),
+    ( ( $opts{b} ) ? ( BUILD_SYSTEM          => $opts{b} ) : () ),
+    ( ( $opts{v} ) ? ( VERSION               => $opts{v} ) : () ),
+    ( ( $opts{l} ) ? ( LICENSE               => $opts{l} ) : () ),
+    ( ( $opts{u} ) ? ( AUTHOR                => $opts{u} ) : () ),
+    ( ( $opts{p} ) ? ( CPANID                => $opts{p} ) : () ),
+    ( ( $opts{o} ) ? ( ORGANIZATION          => $opts{o} ) : () ),
+    ( ( $opts{w} ) ? ( WEBSITE               => $opts{w} ) : () ),
+    ( ( $opts{e} ) ? ( EMAIL                 => $opts{e} ) : () ),
+    ( ( $opts{r} ) ? ( PERMISSIONS           => $opts{r} ) : () ),
+    ( ( $opts{d} ) ? ( ALT_BUILD             => $opts{d} ) : () ),
     USAGE_MESSAGE => Usage(),
 );
 
-# $MOD->partial_dump(qw| LicenseParts USAGE_MESSAGE |);
+my $mod = ExtUtils::ModuleMaker::Interactive->new( %standard_options);
 
-if ( $MOD->{INTERACTIVE} ) {
-    $MOD = run_interactive($MOD);
-    build_and_close($MOD);
-}
-else {
-    build_and_close($MOD);
-}
+$mod->run_interactive() if $mod->{INTERACTIVE};
 
-########## END STATEMENTS ##########
+$mod->complete_build();
+
+$mod->closing_message();
+
+########## END LIVE CODE ##########
 
 ########## BEGIN SUBROUTINES ##########
 
-sub build_and_close {
-    my $MOD = shift;
-    $MOD->complete_build();
-    print "\n-------------------\n\nModule files generated.  Good bye.\n\n";
-}
-	
 sub Usage {
     my $message = <<ENDOFUSAGE;
 modulemaker [-CIPVch] [-v version] [-n module_name] [-a abstract]
         [-u author_name] [-p author_CPAN_ID] [-o organization]
         [-w author_website] [-e author_e-mail]
-        [-l license_name] [-b build_system]
+        [-l license_name] [-b build_system] [-s save_selections_as_defaults ]
 
 Currently Supported Features
     -a   Specify (in quotes) an abstract for this extension
     -b   Specify a build system for this extension
     -c   Flag for compact base directory name
     -C   Omit creating the Changes file, add HISTORY heading to stub POD
+    -d   Call methods which override default methods from this module
     -e   Specify author's e-mail address
     -h   Display this help message
     -I   Disable INTERACTIVE mode, the command line arguments better be complete
@@ -81,6 +95,9 @@ Currently Supported Features
     -o   Specify (in quotes) author's organization
     -p   Specify author's CPAN ID
     -P   Omit the stub POD section
+    -q   Flag to omit a constructor from module
+    -r   Specify permissions
+    -s   Flag to save selections as new personal default values
     -u   Specify (in quotes) author's name
     -v   Specify a version number for this extension
     -V   Flag for verbose messages during module creation
@@ -92,7 +109,6 @@ ENDOFUSAGE
 
     return ($message);
 }
-
 #'
 
 ################### DOCUMENTATION ################### 
@@ -103,10 +119,10 @@ modulemaker - interactive interface to ExtUtils::ModuleMaker
 
 =head1 VERSION
 
-This document references version 0.36 of modulemaker, released
-to CPAN on July 18, 2005.
+This document references version 0.37 of modulemaker, released
+to CPAN on September 3, 2005.
 
-=head1 USAGE
+=head1 USAGE -- Simple
 
 =head2 Easy
 
@@ -120,12 +136,147 @@ At the command-prompt, simply call:
 
 At the command-prompt, call C<modulemaker> with as many options as you can type correctly:
 
-    modulemaker [-CIPVch] [-v version] [-n module_name] [-a abstract]
+    modulemaker [-CIPVchq] [-v version] [-n module_name] [-a abstract]
         [-u author_name] [-p author_CPAN_ID] [-o organization]
         [-w author_website] [-e author_e-mail]
         [-l license_name] [-b build_system]
 
-Currently Supported Features
+=head2 Mix and Match
+
+You can specify some of the arguments on the command-line and then -- assuming
+you don't include the C<-I> option -- F<modulemaker> will then switch to
+interactive mode so that you can finish entering arguments at the prompts.
+
+=head1 USAGE -- More
+
+=head2 Menus
+
+You will be presented with a series of menus looking something like this:
+
+=over 4
+
+=item * Main Menu
+
+  ------------------------
+
+  modulemaker: Main Menu
+
+      Feature                     Current Value
+  N - Name of module              ''
+  S - Abstract                    'Module abstract (<= 44 characters) goes here'
+  A - Author information
+  L - License                     'perl'
+  D - Directives
+  B - Build system                'ExtUtils::MakeMaker'
+
+  G - Generate module
+  H - Generate module;
+      save selections as defaults
+
+  X - Exit immediately
+
+  Please choose which feature you would like to edit: 
+
+=item * Author Menu
+
+  ------------------------
+
+  modulemaker: Author Menu
+
+      Feature       Current Value
+  N - Author        'A. U. Thor'
+  C - CPAN ID       'MODAUTHOR'
+  O - Organization  'XYZ Corp.'
+  W - Website       'http://a.galaxy.far.far.away/modules'
+  E - Email         'a.u.thor@a.galaxy.far.far.away'
+
+  R - Return to main menu
+  X - Exit immediately
+
+  Please choose which feature you would like to edit:
+
+=item * License Menu
+
+  ------------------------
+
+  modulemaker: License Menu
+
+  ModuleMaker provides many licenes to choose from, many of them approved by
+  opensource.org.
+
+          License Name
+  1       Apache Software License (1.1)
+  2       Artistic License
+  3       Artistic License w/ Aggregation
+  4       BSD License
+  5       BSD License(Raw)
+  6       CVW - MITRE Collaborative Virtual Workspace
+  7       GPL - General Public License (2)
+  8       IBM Public License Version (1.0)
+  9       Intel (BSD+)
+  10      Jabber (1.0)
+  11      LGPL - GNU Lesser General Public License (2.1)
+  12      MIT License
+  13      Mozilla Public License (1.0)
+  14      Mozilla Public License (1.1)
+  15      Nethack General Public License
+  16      Nokia Open Source License(1.0a)
+  17      Python License
+  18      Q Public License (1.0)
+  19      Ricoh Source Code Public License (1.0)
+  20***   Same terms as Perl itself
+  21      Sun Internet Standards Source License
+  22      The Sleepycat License
+  23      Vovida Software License (1.0)
+  24      zlib/libpng License
+  25      Loose Lips License (1.0)
+
+  # - Enter the number of the license you want to use
+  C - Display the Copyright
+  L - Display the License
+  R - Return to main menu
+  X - Exit immediately
+
+  Please choose which license you would like to use:
+
+=item * Directives Menu
+
+  ------------------------
+ 
+  modulemaker: Directives Menu
+ 
+      Feature           Current Value
+  C - Compact          '0'
+  V - Verbose          '0'
+  D - Include POD      '1'
+  N - Include new      '1'
+  H - History in POD   '0'
+  P - Permissions      '0755 - 493'
+ 
+  R - Return to main menu
+  X - Exit immediately
+ 
+  Please choose which feature you would like to edit:
+ 
+=item * Build System Menu
+
+  ------------------------
+
+  Here is the current build system:
+
+  ExtUtils::MakeMaker
+
+  E - ExtUtils::MakeMaker
+  B - Module::Build
+  P - Module::Build and proxy Makefile.PL
+  R - Return to main menu
+  X - Exit immediately
+
+  Please choose which build system you would like to use:
+
+=back
+
+=head2 Features Currently Supported with Command-Line Options
 
 =over 4
 
@@ -144,6 +295,11 @@ Flag for compact base directory name
 =item * -C
 
 Omit creating the Changes file, add HISTORY heading to stub POD
+
+=item * -d
+
+Name of Perl module whose methods will override defaults provided in
+F<ExtUtils/ModuleMaker.pm> and F<ExtUtils/ModuleMaker/StandardText.pm>.
 
 =item * -e
 
@@ -180,6 +336,17 @@ Omit the stub POD section
 =item * -q
 
 Do not include a constructor (C<new()>) in the F<*.pm> file.
+
+=item * -r
+
+Set permissions.
+
+=item * -s
+
+Save the selections entered (either as command-line options or as responses to
+F<modulemaker>'s prompts) as your new personal defaults.  These will be the
+values provided by ExtUtils::ModuleMaker or F<modulemaker> the next time you
+invoke either one of them.
 
 =item * -u
 
@@ -218,7 +385,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-F<ExtUtils::ModuleMaker>, F<perlnewmod>, F<h2xs>, F<ExtUtils::MakeMaker>.
+F<ExtUtils::ModuleMaker>, F<ExtUtils::ModuleMaker::StandardText>, F<perlnewmod>, F<h2xs>, F<ExtUtils::MakeMaker>.
 
 =cut
 
