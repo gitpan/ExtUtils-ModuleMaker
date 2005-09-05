@@ -1,9 +1,9 @@
 package ExtUtils::ModuleMaker::StandardText;
-# as of 09-04-2005
+# as of 09-05-2005
 use strict;
 local $^W = 1;
 use vars qw ( $VERSION );
-$VERSION = '0.38';
+$VERSION = '0.39';
 use ExtUtils::ModuleMaker::Licenses::Standard qw(
     Get_Standard_License
     Verify_Standard_License
@@ -17,8 +17,7 @@ use Carp;
 
 =head1 NAME
 
-ExtUtils::ModuleMaker::StandardText - Methods used within
-ExtUtils::ModuleMaker
+ExtUtils::ModuleMaker::StandardText - Methods used within ExtUtils::ModuleMaker
 
 =head1 DESCRIPTION
 
@@ -142,7 +141,7 @@ sub generate_pm_file {
     $self->print_file( $module->{FILE}, $text_of_pm_file );
 }
 
-=head2 Methods Called within C<complete_build()> as an Argument to C<print_fiile()>
+=head2 Methods Called within C<complete_build()> as an Argument to C<print_file()>
 
 =head3 C<text_README()>
 
@@ -546,17 +545,17 @@ sub block_begin {
     my $package_line  = "package $module->{NAME};\n";
     my $strict_line   = "use strict;\n";
     my $warnings_line = "use warnings;\n";  # not included in standard version
-    my $begin_block   = <<'END_OF_BEGIN';
+    my $begin_block   = <<"END_OF_BEGIN";
 
 BEGIN {
     use Exporter ();
-    use vars qw($VERSION @ISA @EXPORT @EXPORT_OK \%EXPORT_TAGS);
-    $VERSION     = $version;
-    @ISA         = qw(Exporter);
+    use vars qw(\$VERSION \@ISA \@EXPORT \@EXPORT_OK \%EXPORT_TAGS);
+    \$VERSION     = '$version';
+    \@ISA         = qw(Exporter);
     #Give a hoot don't pollute, do not export more than needed by default
-    @EXPORT      = qw();
-    @EXPORT_OK   = qw();
-    %EXPORT_TAGS = ();
+    \@EXPORT      = qw();
+    \@EXPORT_OK   = qw();
+    \%EXPORT_TAGS = ();
 }
 
 END_OF_BEGIN
