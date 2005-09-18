@@ -1,11 +1,11 @@
 package ExtUtils::ModuleMaker::Interactive;
-# as of 09-05-2005
+# as of 09-18-2005
 use strict;
 local $^W = 1;
 BEGIN {
     use base qw( ExtUtils::ModuleMaker );
     use vars qw ( $VERSION ); 
-    $VERSION = '0.39';
+    $VERSION = '0.40';
 }
 use Carp;
 use Data::Dumper;
@@ -377,27 +377,20 @@ sub Main_Menu {
                 'data' );
             $MOD->{ABSTRACT} = $value;
         }
-        elsif ( $response eq 'G' ) {
+        elsif ( $response eq 'G' or $response eq 'H' ) {
             $MOD->set_author_composite();
             if (! $MOD->{NAME}) {
                 print "ERROR:  Must enter module name!\n";
                 next MAIN_LOOP;
             } elsif ($MOD->validate_values()) {
-                print "Module files are being generated.\n";
-                return ('done');
-            } else {
-                next MAIN_LOOP;
-            }
-        }
-        elsif ( $response eq 'H' ) {
-            $MOD->set_author_composite();
-            if (! $MOD->{NAME}) {
-                print "ERROR:  Must enter module name!\n";
-                next MAIN_LOOP;
-            } elsif ($MOD->validate_values()) {
-                $MOD->make_selections_defaults();
-                print "Module files are being generated;\n";
-                print "  selections are being saved as defaults.\n";
+                $MOD->set_file_composite();
+                if ( $response eq 'G' ) {
+                    print "Module files are being generated.\n";
+                } else {
+                    $MOD->make_selections_defaults();
+                    print "Module files are being generated;\n";
+                    print "  selections are being saved as defaults.\n";
+                }
                 return ('done');
             } else {
                 next MAIN_LOOP;
@@ -601,13 +594,13 @@ ExtUtils::ModuleMaker::Interactive - Hold methods used in F<modulemaker>
 
     use ExtUtils::ModuleMaker::Interactive;
 
-    ...  # ExtUtils::ModuleMaker::new() called here
-    
-    $MOD->run_interactive() if $MOD->{INTERACTIVE};
+    $mod = ExtUtils::ModuleMaker::Interactive->new(%standard_options);
+
+    $mod->run_interactive() if $mod->{INTERACTIVE};
 
     ...  # ExtUtils::ModuleMaker::complete_build() called here
     
-    $MOD->closing_message();
+    $mod->closing_message();
 
 =head1 DESCRIPTION
 

@@ -1,10 +1,12 @@
 Changes
 lib/ExtUtils/ModuleMaker.pm
+lib/ExtUtils/ModuleMaker/Auxiliary.pm
 lib/ExtUtils/ModuleMaker/Defaults.pm
 lib/ExtUtils/ModuleMaker/Initializers.pm
 lib/ExtUtils/ModuleMaker/Interactive.pm
 lib/ExtUtils/ModuleMaker/Licenses/Local.pm
 lib/ExtUtils/ModuleMaker/Licenses/Standard.pm
+lib/ExtUtils/ModuleMaker/Opts.pm
 lib/ExtUtils/ModuleMaker/StandardText.pm
 lib/ExtUtils/ModuleMaker/Utility.pm
 LICENSE
@@ -27,12 +29,9 @@ t/10_standard_text.t
 t/11_license.t
 t/12_make_selections_defaults.t
 t/13_alt_block_new_method.t
-t/14_alt_no_Todo.t
-t/15_mmkr_alt_block_new_method.t
-t/16_mmkr_alt_no_Todo.t
-t/testlib/Auxiliary.pm
+t/14_mmkr_alt_block_new_method.t
+t/testlib/arbitrary.txt
 t/testlib/ExtUtils/ModuleMaker/Alt_block_new_method.pm
-t/testlib/ExtUtils/ModuleMaker/Alt_no_Todo.pm
 t/testlib/ExtUtils/ModuleMaker/Testing/Defaults.pm
 t/testlib/IO/Capture.pm
 t/testlib/IO/Capture/ErrorMessages.pm

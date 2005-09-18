@@ -1,9 +1,9 @@
 package ExtUtils::ModuleMaker::Initializers;
-# as of 09-05-2005
+# as of 09-18-2005
 use strict;
 local $^W = 1;
 use vars qw( $VERSION );
-$VERSION = '0.39';
+$VERSION = '0.40';
 use ExtUtils::ModuleMaker::Licenses::Standard qw(
     Get_Standard_License
     Verify_Standard_License
@@ -15,7 +15,7 @@ use ExtUtils::ModuleMaker::Licenses::Local qw(
 
 =head1 NAME
 
-ExtUtils::ModuleMaker::Initializers - Methods used within ExtUtils::ModuleMaker::new() and ExtUtils::ModuleMaker::Interactive
+ExtUtils::ModuleMaker::Initializers - Methods used within C<ExtUtils::ModuleMaker::new()> and C<ExtUtils::ModuleMaker::Interactive::Main_Menu>
 
 =head1 DESCRIPTION
 
@@ -23,10 +23,12 @@ The methods described below are 'quasi-private' methods which are called by
 certain publicly available methods of ExtUtils::ModuleMaker and
 ExtUtils::ModuleMaker::Interactive.  They are 'quasi-private' in the sense
 that they are not intended to be called by the everyday user of
-ExtUtils::ModuleMaker.  But nothing prevents a user from calling these
-methods.  Nevertheless, they are documented here primarily so that users
-writing plug-ins for ExtUtils::ModuleMaker's standard text know what methods
-need to be subclassed.
+ExtUtils::ModuleMaker.  Nothing prevents a user from calling these
+methods, but they are documented here primarily so that users
+writing plug-ins for ExtUtils::ModuleMaker will know what methods
+need to be subclassed.  I<Since they are not part of the public interface, their
+names and functionality may change in future versions of
+ExtUtils::ModuleMaker.>
 
 The methods below are called in C<ExtUtils::ModuleMaker::new()> but not in
 that same package's C<complete_build>.  For methods called in
@@ -34,8 +36,8 @@ C<complete_build>, please see ExtUtils::ModuleMaker::StandardText.  Some of
 the methods below are also called within methods in
 ExtUtils::ModuleMaker::Interactive.
 
-Subclassers:  It is recommended that, at ExtUtils::ModuleMaker's current state
-of development, you I<not> subclass these methods but instead focus your
+Subclassers:  At ExtUtils::ModuleMaker's current state of development, it is 
+recommended that you I<not> subclass these methods but instead focus your
 efforts on subclassing the methods in ExtUtils::ModuleMaker::StandardText.
 The latter package's methods focus more closely on the structure and content
 of the files built by ExtUtils::ModuleMaker.
@@ -72,6 +74,26 @@ sub set_author_composite {
             $self->{WEBSITE}, 
         ),
     );
+}
+
+=head3 C<set_file_composite>
+
+  Usage     : $self->set_file_composite() within new()
+  Purpose   : Sets $self key COMPOSITE by composing it from $self key NAME
+  Returns   : n/a
+  Argument  : n/a
+  Comment   : 
+
+=cut
+
+sub set_file_composite {
+    my $self = shift;
+
+    my @layers = split( /::/, $self->{NAME} );
+    my $file   = pop(@layers);
+    $file .= '.pm';
+    my $dir         = join( '/', 'lib', @layers );
+    $self->{FILE} = join( '/', $dir, $file );
 }
 
 =head3 C<set_dates()>
@@ -200,6 +222,12 @@ sub initialize_license {
     }
 
 }
+
+=head1 SEE ALSO
+
+F<ExtUtils::ModuleMaker>.
+
+=cut
 
 1;
 

@@ -14,8 +14,7 @@ use_ok( 'ExtUtils::ModuleMaker::Utility', qw(
         _restore_mmkr_dir_status
     )
 );
-use lib ("./t/testlib");
-use_ok( 'Auxiliary', qw(
+use_ok( 'ExtUtils::ModuleMaker::Auxiliary', qw(
         _process_personal_defaults_file 
         _reprocess_personal_defaults_file 
     )
@@ -24,11 +23,10 @@ use_ok( 'Auxiliary', qw(
 SKIP: {
     eval { require 5.006_001 };
     skip "tests require File::Temp, core with 5.6", 
-        (44 - 2) if $@;
+        (44 - 4) if $@;
     use warnings;
     use_ok( 'File::Temp', qw| tempdir |);
-    use lib ("./t/testlib");
-    use Auxiliary qw(
+    use ExtUtils::ModuleMaker::Auxiliary qw(
         read_file_string
         read_file_array
     );

@@ -1,9 +1,9 @@
 package ExtUtils::ModuleMaker::StandardText;
-# as of 09-05-2005
+# as of 09-18-2005
 use strict;
 local $^W = 1;
 use vars qw ( $VERSION );
-$VERSION = '0.39';
+$VERSION = '0.40';
 use ExtUtils::ModuleMaker::Licenses::Standard qw(
     Get_Standard_License
     Verify_Standard_License
@@ -13,6 +13,7 @@ use ExtUtils::ModuleMaker::Licenses::Local qw(
     Verify_Local_License
 );
 use File::Path;
+use File::Spec;
 use Carp;
 
 =head1 NAME
@@ -25,20 +26,20 @@ The methods described below are 'quasi-private' methods which are called by
 the publicly available methods of ExtUtils::ModuleMaker and
 ExtUtils::ModuleMaker::Interactive.  They are 'quasi-private' in the sense
 that they are not intended to be called by the everyday user of
-ExtUtils::ModuleMaker.  But nothing prevents a user from calling these
-methods.  Nevertheless, they are documented here primarily so that users
-writing plug-ins for ExtUtils::ModuleMaker's standard text know what methods
+ExtUtils::ModuleMaker.  Nothing prevents a user from calling these
+methods, but they are documented here primarily so that users
+writing plug-ins for ExtUtils::ModuleMaker's standard text will know what methods
 need to be subclassed.
 
-The methods below are called in C<ExtUtils::ModuleMaker::complet_build()> 
-but not in that same package's C<new>.  For methods called in
-C<new>, please see ExtUtils::ModuleMaker::Initializers.
+The methods below are called in C<ExtUtils::ModuleMaker::complete_build()> 
+but not in that same package's C<new()>.  For methods called in
+C<new()>, please see ExtUtils::ModuleMaker::Initializers.
 
 The descriptions below are presented in hierarchical order rather than
 alphabetically.  The order is that of ''how close to the surface can a
 particular method called?'', where 'surface' means being called within
-C<ExtUtils::ModuleMaker::new()> or C<ExtUtils::ModuleMaker::complete_build()>.
-So methods called within one of those two public methods are described before
+C<ExtUtils::ModuleMaker::complete_build()>. 
+So methods called within C<complete_build()> are described before
 methods which are only called within other quasi-private methods.  Some of the
 methods described are also called within ExtUtils::ModuleMaker::Interactive
 methods.  And some quasi-private methods are called within both public and
@@ -58,22 +59,23 @@ Happy subclassing!
   Purpose   : Create the directory where all the files will be created.
   Returns   : $DIR = directory name where the files will live
   Argument  : n/a
-  Comment   : $self keys Base_Dir, COMPACT, NAME.  Calls method check_dir.
+  Comment   : $self keys Base_Dir, COMPACT, NAME.  Calls method create_directory.
 
 =cut
 
 sub create_base_directory {
     my $self = shift;
 
-    $self->{Base_Dir} =
-      join( ( $self->{COMPACT} ) ? q{-} : q{/}, split( /::/, $self->{NAME} ) );
+    $self->{Base_Dir} = File::Spec->rel2abs(
+      join( ( $self->{COMPACT} ) ? q{-} : q{/}, split( /::/, $self->{NAME} ) )
+    );
 
-    $self->check_dir( $self->{Base_Dir} );
+    $self->create_directory( $self->{Base_Dir} );
 }
 
-=head3 C<check_dir()>
+=head3 C<create_directory()>
 
-  Usage     : check_dir( [ I<list of directories to be built> ] )
+  Usage     : create_directory( [ I<list of directories to be built> ] )
               in complete_build; create_base_directory; create_pm_basics 
   Purpose   : Creates directory(ies) requested.
   Returns   : n/a
@@ -85,7 +87,7 @@ sub create_base_directory {
 
 =cut
 
-sub check_dir {
+sub create_directory {
     my $self = shift;
 
     return mkpath( \@_, $self->{VERBOSE}, $self->{PERMISSIONS} );
@@ -109,36 +111,14 @@ sub print_file {
 
     push( @{ $self->{MANIFEST} }, $filename )
       unless ( $filename eq 'MANIFEST' );
-#    $self->log_message("writing file '$filename'");
     $self->log_message( qq{writing file '$filename'});
 
+    my $file = File::Spec->catfile( $self->{Base_Dir}, $filename );
     local *FILE;
-    open( FILE, ">$self->{Base_Dir}/$filename" )
+    open( FILE, ">$file" )
       or $self->death_message( [ qq{Could not write '$filename', $!} ] );
     print FILE $filetext;
     close FILE;
-}
-
-=head3 C<generate_pm_file>
-
-  Usage     : $self->generate_pm_file($module) within complete_build()
-  Purpose   : Create a pm file out of assembled components
-  Returns   : n/a
-  Argument  : $module: pointer to the module being built
-              (as there can be more than one module built by EU::MM);
-              for the primary module it is a pointer to $self
-  Comment   : 3 components:  create_pm_basics; compose_pm_file; print_file
-
-=cut
-
-sub generate_pm_file {
-    my ( $self, $module ) = @_;
-
-    $self->create_pm_basics($module);
-
-    my $text_of_pm_file = $self->compose_pm_file($module);
-
-    $self->print_file( $module->{FILE}, $text_of_pm_file );
 }
 
 =head2 Methods Called within C<complete_build()> as an Argument to C<print_file()>
@@ -275,47 +255,67 @@ EOF
 =cut
 
 sub text_test {
-    my ( $self, $testnum, $module ) = @_;
+    my ( $self, $testfilename, $module ) = @_;
 
-    my $name    = $self->module_value( $module, 'NAME' );
-    my $neednew = $self->module_value( $module, 'NEED_NEW_METHOD' );
+    my $name    = $self->process_attribute( $module, 'NAME' );
+    my $neednew = $self->process_attribute( $module, 'NEED_NEW_METHOD' );
 
-    my $text_of_test_file;
-    if ($neednew) {
-        my $name = $module->{NAME};
-
-        $text_of_test_file = <<EOF;
+    my %test_file_texts;
+    $test_file_texts{neednew} = <<MFNN;
 # -*- perl -*-
 
-# $testnum - check module loading and create testing directory
+# $testfilename - check module loading and create testing directory
 
 use Test::More tests => 2;
 
-BEGIN { use_ok( '$name' ); }
+BEGIN { use_ok( '$module->{NAME}' ); }
 
 my \$object = ${name}->new ();
-isa_ok (\$object, '$name');
+isa_ok (\$object, '$module->{NAME}');
 
 
-EOF
+MFNN
 
-    }
-    else {
-
-        $text_of_test_file = <<EOF;
+    $test_file_texts{zeronew} = <<MFZN;
 # -*- perl -*-
 
-# $testnum - check module loading and create testing directory
+# $testfilename - check module loading and create testing directory
 
 use Test::More tests => 1;
 
-BEGIN { use_ok( '$name' ); }
+BEGIN { use_ok( '$module->{NAME}' ); }
 
 
-EOF
+MFZN
 
+    return $neednew ? $test_file_texts{neednew}
+                    : $test_file_texts{zeronew};
+}
+
+sub text_test_multi {
+    my ( $self, $testfilename, $pmfilesref ) = @_;
+    my @pmfiles = @{$pmfilesref};
+
+    my $top = <<END_OF_TOP;
+# -*- perl -*-
+
+# $testfilename - check module loading and create testing directory
+END_OF_TOP
+
+    my $number_line = q{use Test::More tests => } . scalar(@pmfiles) . q{;};
+
+    my $begin_block = "BEGIN {\n";
+    foreach my $f (@pmfiles) {
+        $begin_block .= "    use_ok( '$f->{NAME}' );\n";
     }
+    $begin_block .= "}\n";
 
+    my $text_of_test_file = join("\n", (
+            $top,
+            $number_line,
+            $begin_block,
+        )
+    );
     return $text_of_test_file;
 }
 
@@ -448,35 +448,112 @@ EOF
     return $text_of_proxy;
 }
 
+=head3 C<text_MANIFEST_SKIP()>
 
-=head2 Methods Called within C<generate_pm_file()>
-
-=head3 C<create_pm_basics>
-
-  Usage     : $self->create_pm_basics($module) within generate_pm_file()
-  Purpose   : Conducts check on directory 
-  Returns   : For a given pm file, sets the FILE key: directory/file 
-  Argument  : $module: pointer to the module being built
-              (as there can be more than one module built by EU::MM);
-              for the primary module it is a pointer to $self
-  Comment   : References $self keys NAME, Base_Dir, and FILE.  
-              Calls method check_dir.
+  Usage     : $self->text_MANIFEST_SKIP() within complete_build()
+  Purpose   : Composes text for MANIFEST.SKIP file
+  Returns   : String with text of MANIFEST.SKIP file
+  Argument  : n/a
+  Throws    : n/a
+  Comment   : References $self key NAME
+  Comment   : Adapted from David Golden's ExtUtils::ModuleMaker::TT
 
 =cut
 
-sub create_pm_basics {
-    my ( $self, $module ) = @_;
-    my @layers = split( /::/, $module->{NAME} );
-    my $file   = pop(@layers);
-    my $dir    = join( '/', 'lib', @layers );
+sub text_MANIFEST_SKIP {
+    my $self = shift;
 
-    $self->check_dir("$self->{Base_Dir}/$dir");
-    $module->{FILE} = "$dir/$file.pm";
+    my $text_of_SKIP = <<'END_OF_SKIP';
+# Version control files and dirs.
+\bRCS\b
+\bCVS\b
+,v$
+.svn/
+
+# ExtUtils::MakeMaker generated files and dirs.
+^MANIFEST\.(?!SKIP)
+^Makefile$
+^blib/
+^blibdirs$
+^PM_to_blib$
+^MakeMaker-\d
+                                                                                                                    
+# Module::Build
+^Build$
+^_build
+
+# Temp, old, vi and emacs files.
+~$
+\.old$
+^#.*#$
+^\.#
+\.swp$
+\.bak$
+END_OF_SKIP
+
+    return $text_of_SKIP;
 }
 
-=head3 C<compose_pm_file()>
+=head3 C<text_pod_coverage_test()>
 
-  Usage     : $self->compose_pm_file($module) within generate_pm_file()
+  Usage     : $self->text_pod_coverage_test() within complete_build()
+  Purpose   : Composes text for t/pod-coverage.t
+  Returns   : String with text of t/pod-coverage.t
+  Argument  : n/a
+  Throws    : n/a
+  Comment   : Adapted from Andy Lester's Module::Starter
+  Comment   : I don't think of much of this metric, but Andy and Damian do,
+              so if you want it you set INCLUDE_POD_COVERAGE_TEST => 1
+
+=cut
+
+sub text_pod_coverage_test {
+    my $self = shift;
+
+    my $text_of_pod_coverage_test = <<'END_OF_POD_COVERAGE_TEST';
+#!perl -T
+
+use Test::More;
+eval "use Test::Pod::Coverage 1.04";
+plan skip_all => "Test::Pod::Coverage 1.04 required for testing POD coverage"
+    if $@;
+all_pod_coverage_ok();
+END_OF_POD_COVERAGE_TEST
+
+    return $text_of_pod_coverage_test;
+}
+
+=head3 C<text_pod_test()>
+
+  Usage     : $self->text_pod_test() within complete_build()
+  Purpose   : Composes text for t/pod.t
+  Returns   : String with text of t/pod.t
+  Argument  : n/a
+  Throws    : n/a
+  Comment   : Adapted from Andy Lester's Module::Starter
+  Comment   : I don't think of much of this metric, but Andy and Damian do,
+              so if you want it you set INCLUDE_POD_TEST => 1
+
+=cut
+
+sub text_pod_test {
+    my $self = shift;
+
+    my $text_of_pod_test = <<'END_OF_POD_TEST';
+#!perl -T
+
+use Test::More;
+eval "use Test::Pod 1.14";
+plan skip_all => "Test::Pod 1.14 required for testing POD" if $@;
+all_pod_files_ok();
+END_OF_POD_TEST
+
+    return $text_of_pod_test;
+}
+
+=head3 C<text_pm_file()>
+
+  Usage     : $self->text_pm_file($module) within generate_pm_file()
   Purpose   : Composes a string holding all elements for a pm file
   Returns   : String holding text for a pm file
   Argument  : $module: pointer to the module being built
@@ -487,7 +564,7 @@ sub create_pm_basics {
 
 =cut
 
-sub compose_pm_file {
+sub text_pm_file {
     my $self = shift;
     my $module = shift;
       
@@ -496,8 +573,8 @@ sub compose_pm_file {
     $text_of_pm_file .= (
          (
             (
-                 ( $self->module_value( $module, 'NEED_POD' ) )
-              && ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
+                 ( $self->process_attribute( $module, 'NEED_POD' ) )
+              && ( $self->process_attribute( $module, 'NEED_NEW_METHOD' ) )
             )
             ? $self->block_subroutine_header($module)
          : q{}
@@ -505,27 +582,32 @@ sub compose_pm_file {
     );
 
     $text_of_pm_file .= (
-        ( $self->module_value( $module, 'NEED_NEW_METHOD' ) )
+        ( $self->process_attribute( $module, 'NEED_NEW_METHOD' ) )
         ? $self->block_new_method()
         : q{}
     );
 
     $text_of_pm_file .= (
-         ( $self->module_value( $module, 'NEED_POD' ) )
+        ( $self->process_attribute( $module, 'INCLUDE_FILE_IN_PM' ) )
+        ? $self->block_include_file_in_pm()
+        : q{}
+    );
+
+    $text_of_pm_file .= (
+         ( $self->process_attribute( $module, 'NEED_POD' ) )
          ? $self->block_pod($module)
          : q{}
     );
 
-    $text_of_pm_file .= $self->block_final_one();
+    $text_of_pm_file .= $self->block_final();
     return ($module, $text_of_pm_file);
 }
 
-
-=head2 Methods Called within C<compose_pm_file()>
+=head2 Methods Called within C<text_pm_file()>
 
 =head3 C<block_begin()>
 
-  Usage     : $self->block_begin($module) within compose_pm_file()
+  Usage     : $self->block_begin($module) within text_pm_file()
   Purpose   : Composes the standard code for top of a Perl pm file
   Returns   : String holding code for top of pm file
   Argument  : $module: pointer to the module being built
@@ -541,7 +623,7 @@ sub compose_pm_file {
 
 sub block_begin {
     my ( $self, $module ) = @_;
-    my $version = $self->module_value( $module, 'VERSION' );
+    my $version = $self->process_attribute( $module, 'VERSION' );
     my $package_line  = "package $module->{NAME};\n";
     my $strict_line   = "use strict;\n";
     my $warnings_line = "use warnings;\n";  # not included in standard version
@@ -567,23 +649,28 @@ END_OF_BEGIN
     return $text;
 }
 
-=head3 C<module_value()>
+=head3 C<process_attribute()>
 
-  Usage     : $self->module_value($module, @keys) 
+  Usage     : $self->process_attribute($module, @keys) 
               within block_begin(), text_test(),
-              compose_pm_file(),  block_pod()
-  Purpose   : When writing POD sections, you have to 'escape' 
-              the POD markers to prevent the compiler from treating 
-              them as real POD.  This method 'unescapes' them and puts header
-              and closer around individual POD headings within pm file.
-  Arguments : First is pointer to module being formed.  Second is an array
-              whose members are the section(s) of the POD being written. 
+              text_pm_file(),  block_pod(), complete_build()
+  Purpose   : 
+              For the particular .pm file now being processed (value of the
+              NAME key of the first argument: $module), see if there exists a
+              key whose name is the second argument.  If so, return it.  
+              Otherwise, return the value of the key by that name in the
+              EU::MM object.  If we have a two-level hash (currently only in
+              License_Parts, process down to that level.
+  Arguments : First argument is a reference to an anonymous hash which has at
+              least one element with key NAME and value of the module being 
+              processed.  Second is an array of key names, although in all but
+              one case it's a single-element (NAME) array.
   Comment   : [The method's name is very opaque and not self-documenting.
               Function of the code is not easily evident.  Rename?  Refactor?]
 
 =cut
 
-sub module_value {
+sub process_attribute {
     my ( $self, $module, @keys ) = @_;
 
     if ( scalar(@keys) == 1 ) {
@@ -598,78 +685,9 @@ sub module_value {
     }
 }
 
-=head3 C<block_pod()>
-
-  Usage     : $self->block_pod($module) inside compose_pm_file()
-  Purpose   : Compose the main POD section within a pm file
-  Returns   : String holding main POD section
-  Argument  : $module: pointer to the module being built
-              (as there can be more than one module built by EU::MM);
-              for the primary module it is a pointer to $self
-  Throws    : n/a
-  Comment   : This method is a likely candidate for alteration in a subclass
-  Comment   : In StandardText formulation, contains the following components:
-              warning about stub documentation needing editing
-              pod wrapper top
-              NAME - ABSTRACT
-              SYNOPSIS
-              DESCRIPTION
-              USAGE
-              BUGS
-              SUPPORT
-              HISTORY (as requested)
-              AUTHOR
-              COPYRIGHT
-              SEE ALSO
-              pod wrapper bottom
-
-=cut
-
-sub block_pod {
-    my ( $self, $module ) = @_;
-
-    my $name             = $self->module_value( $module, 'NAME' );
-    my $abstract         = $self->module_value( $module, 'ABSTRACT' );
-    my $synopsis         = qq{  use $name;\n  blah blah blah\n};
-    my $description      = <<END_OF_DESC;
-Stub documentation for this module was created by ExtUtils::ModuleMaker.
-It looks like the author of the extension was negligent enough
-to leave the stub unedited.
-
-Blah blah blah.
-END_OF_DESC
-    my $author_composite = $self->module_value( $module, 'COMPOSITE' );
-    my $copyright        = $self->module_value( $module, 'LicenseParts', 'COPYRIGHT');
-    my $see_also         = q{perl(1).};
-
-    my $text_of_pod = join(
-        q{},
-        $self->pod_section( NAME => $name . 
-            ( (defined $abstract) ? qq{ - $abstract} : q{} )
-        ),
-        $self->pod_section( SYNOPSIS    => $synopsis ),
-        $self->pod_section( DESCRIPTION => $description ),
-        $self->pod_section( USAGE       => q{} ),
-        $self->pod_section( BUGS        => q{} ),
-        $self->pod_section( SUPPORT     => q{} ),
-        (
-            ( $self->{CHANGES_IN_POD} )
-            ? $self->pod_section(
-                HISTORY => $self->text_Changes('only pod')
-              )
-            : q{}
-        ),
-        $self->pod_section( AUTHOR     => $author_composite),
-        $self->pod_section( COPYRIGHT  => $copyright),
-        $self->pod_section( 'SEE ALSO' => $see_also),
-    );
-
-    return $self->pod_wrapper($text_of_pod);
-}
-
 =head3 C<block_subroutine_header()>
 
-  Usage     : $self->block_subroutine_header($module) within compose_pm_file()
+  Usage     : $self->block_subroutine_header($module) within text_pm_file()
   Purpose   : Composes an inline comment for pm file (much like this inline
               comment) which documents purpose of a subroutine
   Returns   : String containing text for inline comment
@@ -713,7 +731,7 @@ EOFBLOCK
 
 =head3 C<block_new_method()>
 
-  Usage     : $self->block_new_method() within compose_pm_file()
+  Usage     : $self->block_new_method() within text_pm_file()
   Purpose   : Build 'new()' method as part of a pm file
   Returns   : String holding sub new.
   Argument  : $module: pointer to the module being built
@@ -742,9 +760,104 @@ sub new
 EOFBLOCK
 }
 
-=head3 C<block_final_one()>
+=head3 C<block_include_file_in_pm()>
 
-  Usage     : $self->block_final_one() within compose_pm_file()
+  Usage     : $self->block_include_file_in_pm() within text_pm_file()
+  Purpose   : Include text from an arbitrary file on disk in .pm file,
+              e.g., subroutine stubs you want in each of several extra
+              modules.
+  Returns   : String holding text of arbitrary file.
+  Argument  : $module: pointer to the module being built
+              (as there can be more than one module built by EU::MM);
+              for the primary module it is a pointer to $self
+  Throws    : n/a
+  Comment   : References $self->{INCLUDE_FILE_IN_PM}, whose value must be a
+              path to a single, readable file
+
+=cut
+
+sub block_include_file_in_pm {
+    my ( $self, $module ) = @_;
+    my $arb = $self->{INCLUDE_FILE_IN_PM};
+    local *ARB;
+    open ARB, $arb or croak "Could not open $arb for inclusion: $!";
+    my $text_included = do { local $/; <ARB> }; 
+    close ARB or croak "Could not close $arb after reading: $!";
+    return $text_included;
+}
+
+=head3 C<block_pod()>
+
+  Usage     : $self->block_pod($module) inside text_pm_file()
+  Purpose   : Compose the main POD section within a pm file
+  Returns   : String holding main POD section
+  Argument  : $module: pointer to the module being built
+              (as there can be more than one module built by EU::MM);
+              for the primary module it is a pointer to $self
+  Throws    : n/a
+  Comment   : This method is a likely candidate for alteration in a subclass
+  Comment   : In StandardText formulation, contains the following components:
+              warning about stub documentation needing editing
+              pod wrapper top
+              NAME - ABSTRACT
+              SYNOPSIS
+              DESCRIPTION
+              USAGE
+              BUGS
+              SUPPORT
+              HISTORY (as requested)
+              AUTHOR
+              COPYRIGHT
+              SEE ALSO
+              pod wrapper bottom
+
+=cut
+
+sub block_pod {
+    my ( $self, $module ) = @_;
+
+    my $name             = $self->process_attribute( $module, 'NAME' );
+    my $abstract         = $self->process_attribute( $module, 'ABSTRACT' );
+    my $synopsis         = qq{  use $name;\n  blah blah blah\n};
+    my $description      = <<END_OF_DESC;
+Stub documentation for this module was created by ExtUtils::ModuleMaker.
+It looks like the author of the extension was negligent enough
+to leave the stub unedited.
+
+Blah blah blah.
+END_OF_DESC
+    my $author_composite = $self->process_attribute( $module, 'COMPOSITE' );
+    my $copyright        = $self->process_attribute( $module, 'LicenseParts', 'COPYRIGHT');
+    my $see_also         = q{perl(1).};
+
+    my $text_of_pod = join(
+        q{},
+        $self->pod_section( NAME => $name . 
+            ( (defined $abstract) ? qq{ - $abstract} : q{} )
+        ),
+        $self->pod_section( SYNOPSIS    => $synopsis ),
+        $self->pod_section( DESCRIPTION => $description ),
+        $self->pod_section( USAGE       => q{} ),
+        $self->pod_section( BUGS        => q{} ),
+        $self->pod_section( SUPPORT     => q{} ),
+        (
+            ( $self->{CHANGES_IN_POD} )
+            ? $self->pod_section(
+                HISTORY => $self->text_Changes('only pod')
+              )
+            : q{}
+        ),
+        $self->pod_section( AUTHOR     => $author_composite),
+        $self->pod_section( COPYRIGHT  => $copyright),
+        $self->pod_section( 'SEE ALSO' => $see_also),
+    );
+
+    return $self->pod_wrapper($text_of_pod);
+}
+
+=head3 C<block_final()>
+
+  Usage     : $self->block_final() within text_pm_file()
   Purpose   : Compose code and comment that conclude a pm file and guarantee
               that the module returns a true value
   Returns   : String containing code and comment concluding a pm file
@@ -757,7 +870,8 @@ EOFBLOCK
 
 =cut
 
-sub block_final_one {
+
+sub block_final {
     my $self = shift;
     return <<EOFBLOCK;
 
@@ -772,7 +886,7 @@ EOFBLOCK
 =head3 C<death_message()>
 
   Usage     : $self->death_message( [ I<list of error messages> ] ) 
-              in validate_values; check_dir; print_file
+              in validate_values; create_directory; print_file
   Purpose   : Croaks with error message composed from elements in the list
               passed by reference as argument
   Returns   : [ To come. ]
@@ -883,6 +997,12 @@ END_OF_TAIL
         $tail      # optional
     );
 }
+
+=head1 SEE ALSO
+
+F<ExtUtils::ModuleMaker>, F<ExtUtils::ModuleMaker::Initializers>.
+
+=cut
 
 1;
 

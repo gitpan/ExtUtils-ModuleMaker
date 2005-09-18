@@ -1,5 +1,9 @@
 Revision history for Perl extension ExtUtils::ModuleMaker.
 
+0.40   September 18, 2005
+    - Extensive refactoring; additional documentation; new default values
+      added, particularly with regard to naming of tests.
+
 0.39   September 5, 2005
     - v0.38 was reported by two beta-testers to fail in tests depending on
       whether the user had or had not previously created a home/.modulemaker

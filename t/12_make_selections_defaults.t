@@ -12,8 +12,7 @@ use_ok( 'ExtUtils::ModuleMaker::Utility', qw(
         _restore_mmkr_dir_status
     )
 );
-use lib ("./t/testlib");
-use_ok( 'Auxiliary', qw(
+use_ok( 'ExtUtils::ModuleMaker::Auxiliary', qw(
         _process_personal_defaults_file 
         _reprocess_personal_defaults_file 
     )
@@ -25,8 +24,7 @@ SKIP: {
         (106 - 4) if $@;
     use warnings;
     use_ok( 'File::Temp', qw| tempdir |);
-    use lib ("./t/testlib");
-    use Auxiliary qw(
+    use ExtUtils::ModuleMaker::Auxiliary qw(
         check_MakefilePL 
         check_pm_file
         make_compact
@@ -87,26 +85,6 @@ was done.
         );
 
         check_MakefilePL($topdir, \@pred);
-
-=pod BetaTesterProblem:
-    The following method call failed for Alex on Debian.  Mysteriously, it
-failed at a call within it to _make_mmkr_directory (EU::MM line
-209) -- which has been called many times within the test suite!
-    It failed for Marc as well, with this error:
-Unable to make directory
-/home/mprewitt/.modulemaker/ExtUtils/ModuleMaker/Personal for placement
-of personal defaults file: No such file or directory at
-t/18_make_selections_defaults.t line 93
-Can't remove directory /tmp/ycwNUJlXTz: Invalid argument at
-/opt/perl/5.6.1/lib/perl/File/Temp.pm line 858
-# Looks like you planned 100 tests but only ran 20.
-# Looks like your test died just after 20.
-    This is occurring at a point where, if
-$HOME/.modulemaker/ExtUtils/ModuleMaker/Personal/ doesn't already exist, the
-method calls 'mkdir' to create it.  It fails to create it, which generates the
-error message at ModuleMaker line 216.
-
-=cut
 
         $obj1->make_selections_defaults();
         ok(-f "$mmkr_dir/$pers_file", "new Personal::Defaults installed");

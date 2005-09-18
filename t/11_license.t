@@ -2,7 +2,7 @@
 use strict;
 local $^W = 1;
 use Test::More 
-tests =>  561;
+tests =>  567;
 # qw(no_plan);
 use_ok( 'ExtUtils::ModuleMaker' );
 use_ok( 'ExtUtils::ModuleMaker::Licenses::Local' );
@@ -13,221 +13,227 @@ use_ok( 'ExtUtils::ModuleMaker::Utility', qw(
         _restore_mmkr_dir_status
     )
 );
+use_ok( 'ExtUtils::ModuleMaker::Auxiliary', qw(
+        _process_personal_defaults_file 
+        _reprocess_personal_defaults_file 
+    )
+);
 
 
 SKIP: {
     eval { require 5.006_001 };
     skip "tests require File::Temp, core with 5.6", 
-        (561 - 3) if $@;
+        (567 - 4) if $@;
     use warnings;
     use_ok( 'File::Temp', qw| tempdir |);
-    use lib ("./t/testlib");
-    use Auxiliary qw(
+    use ExtUtils::ModuleMaker::Auxiliary qw(
         licensetest
         read_file_string
     );
 
-    licensetest(
+    my $caller = 'ExtUtils::ModuleMaker';
+
+    licensetest($caller,
         'perl',
         qr/Terms of Perl itself.*GNU General Public License.*Artistic License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'apache',
         qr/Apache Software License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'apache_1_1',
         qr/Apache Software License.*Version 1\.1/s
     );
 
-    licensetest(
+    licensetest($caller,
         'artistic',
         qr/The Artistic License.*Preamble/s
     );
 
-    licensetest(
+    licensetest($caller,
         'artistic_agg',
         qr/The Artistic License.*Preamble.*Aggregation of this Package with a commercial distribution/s
     );
 
-    licensetest(
+    licensetest($caller,
         'r_bsd',
         qr/The BSD License\s+The following/s
     );
 
-    licensetest(
+    licensetest($caller,
         'bsd',
         qr/The BSD License\s+Copyright/s
     );
 
-    licensetest(
+    licensetest($caller,
         'gpl',
         qr/The General Public License \(GPL\)\s+Version 2, June 1991/s
     );
 
-    licensetest(
+    licensetest($caller,
         'gpl_2',
         qr/The General Public License \(GPL\)\s+Version 2, June 1991/s
     );
 
-    licensetest(
+    licensetest($caller,
         'ibm',
         qr/IBM Public License Version \(1\.0\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'ibm_1_0',
         qr/IBM Public License Version \(1\.0\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'intel',
         qr/The Intel Open Source License for CDSA\/CSSM Implementation\s+\(BSD License with Export Notice\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'jabber',
         qr/Jabber Open Source License \(Version 1\.0\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'jabber_1_0',
         qr/Jabber Open Source License \(Version 1\.0\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'lgpl',
         qr/The GNU Lesser General Public License \(LGPL\)\s+Version 2\.1, February 1999/s
     );
 
-    licensetest(
+    licensetest($caller,
         'lgpl_2_1',
         qr/The GNU Lesser General Public License \(LGPL\)\s+Version 2\.1, February 1999/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mit',
         qr/The MIT License\s+Copyright/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mitre',
         qr/MITRE Collaborative Virtual Workspace License \(CVW License\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mozilla',
         qr/Mozilla Public License 1\.1 \(MPL 1\.1\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mozilla_1_1',
         qr/Mozilla Public License 1\.1 \(MPL 1\.1\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mozilla_1_0',
         qr/Mozilla Public License \(Version 1\.0\)\s+1\. Definitions\./s
     );
 
-    licensetest(
+    licensetest($caller,
         'mpl',
         qr/Mozilla Public License 1\.1 \(MPL 1\.1\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mpl_1_1',
         qr/Mozilla Public License 1\.1 \(MPL 1\.1\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'mpl_1_0',
         qr/Mozilla Public License \(Version 1\.0\)\s+1\. Definitions\./s
     );
 
-    licensetest(
+    licensetest($caller,
         'nethack',
         qr/Nethack General Public License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'python',
         qr/Python License\s+CNRI OPEN SOURCE LICENSE AGREEMENT/s
     );
 
-    licensetest(
+    licensetest($caller,
         'q',
         qr/The Q Public License\s+Version 1\.0/s
     );
 
-    licensetest(
+    licensetest($caller,
         'q_1_0',
         qr/The Q Public License\s+Version 1\.0/s
     );
 
-    licensetest(
+    licensetest($caller,
         'sun',
         qr/Sun Internet Standards Source License \(SISSL\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'sissl',
         qr/Sun Internet Standards Source License \(SISSL\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'sleepycat',
         qr/The Sleepycat License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'zlib',
         qr/The zlib\/libpng License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'libpng',
         qr/The zlib\/libpng License/s
     );
 
-    licensetest(
+    licensetest($caller,
         'nokia',
         qr/Nokia Open Source License \(NOKOS License\) Version 1\.0a/s
     );
 
-    licensetest(
+    licensetest($caller,
         'nokos',
         qr/Nokia Open Source License \(NOKOS License\) Version 1\.0a/s
     );
 
-    licensetest(
+    licensetest($caller,
         'nokia_1_0a',
         qr/Nokia Open Source License \(NOKOS License\) Version 1\.0a/s
     );
 
-    licensetest(
+    licensetest($caller,
         'nokos_1_0a',
         qr/Nokia Open Source License \(NOKOS License\) Version 1\.0a/s
     );
 
-    licensetest(
+    licensetest($caller,
         'ricoh',
         qr/Ricoh Source Code Public License \(Version 1\.0\)/s
     );
 
-    licensetest(
+    licensetest($caller,
         'ricoh_1_0',
         qr/Ricoh Source Code Public License \(Version 1\.0\)/s
     );
 
-    licensetest (
+    licensetest($caller,
         'vovida',
         qr/Vovida Software License v\. 1\.0/s
     );
 
-    licensetest(
+    licensetest($caller,
         'vovida_1_0',
         qr//s
     );
@@ -243,16 +249,21 @@ SKIP: {
         my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
         ok( $mmkr_dir, "personal defaults directory now present on system");
 
+        my $pers_file = "ExtUtils/ModuleMaker/Personal/Defaults.pm";
+        my $pers_def_ref = 
+            _process_personal_defaults_file( $mmkr_dir, $pers_file );
+    
         $testmod = 'Beta';
 
         ok($mod = ExtUtils::ModuleMaker->new( 
                 NAME           => "Alpha::$testmod",
                 COMPACT        => 1,
                 LICENSE        => 'looselips',
-    	    COPYRIGHT_YEAR => 1899,
-    	    AUTHOR => "J E Keenan", 
-    		ORGANIZATION => "The World Wide Webby",
+        	    COPYRIGHT_YEAR => 1899,
+        	    AUTHOR         => "J E Keenan", 
+    	    	ORGANIZATION   => "The World Wide Webby",
         ), "object created for Alpha::$testmod");
+
         ok($mod->complete_build(), "build files for Alpha::$testmod");
 
         ok( -d qq{Alpha-$testmod}, "compact top-level directory exists" );
@@ -275,6 +286,8 @@ SKIP: {
             qr/^={69}\s+={69}.*?={69}\s+={69}.*?={69}\s+={69}/s,
             "formatting for license and copyright found as expected"
         );
+
+        _reprocess_personal_defaults_file($pers_def_ref);
 
         ok(chdir $odir, 'changed back to original directory after testing');
 

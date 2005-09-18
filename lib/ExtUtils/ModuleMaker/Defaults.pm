@@ -1,8 +1,8 @@
 package ExtUtils::ModuleMaker::Defaults;
-# as of 09-05-2005
+# as of 09-18-2005
 use strict;
 use vars qw( $VERSION );
-$VERSION = '0.39';
+$VERSION = '0.40';
 
 my $usage = <<ENDOFUSAGE;
 
@@ -30,12 +30,28 @@ my %default_values = (
         PERMISSIONS      => 0755,
         SAVE_AS_DEFAULTS => 0,
         USAGE_MESSAGE    => $usage,
+        FIRST_TEST_NUMBER                   => 1,
+        TEST_NUMBER_FORMAT                  => "%03d",
+        TEST_NAME                           => 'load',
+        EXTRA_MODULES_SINGLE_TEST_FILE      => 0,
+        TEST_NAME_DERIVED_FROM_MODULE_NAME  => 0,
+        TEST_NAME_SEPARATOR                 => q{_},
+        INCLUDE_MANIFEST_SKIP               => 0,
+        INCLUDE_TODO                        => 1,
+        INCLUDE_POD_COVERAGE_TEST           => 0,
+        INCLUDE_POD_TEST                    => 0,
+        INCLUDE_LICENSE                     => 1,
+        INCLUDE_SCRIPTS_DIRECTORY           => 1,
 );
 
 sub default_values {
     my $self = shift;
     return { %default_values };
 }
+
+1;
+
+#################### DOCUMENTATION #################### 
 
 =head1 NAME
 
@@ -53,7 +69,12 @@ ExtUtils::ModuleMaker::Defaults - Default values for ExtUtils::ModuleMaker objec
   Returns   : Reference to a hash of default values
   Argument  : n/a
   Comment   : Can be overridden by establishing a Personal::Defaults file.
+  Comment   : See ExtUtils::ModuleMaker::PBP for an example of subclassing 
+              this method.
+
+=head1 SEE ALSO
+
+F<ExtUtils::ModuleMaker>.
 
 =cut
 
-1;
