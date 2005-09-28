@@ -1,10 +1,10 @@
 package ExtUtils::ModuleMaker::Auxiliary;
 # Contains test subroutines for distribution with ExtUtils::ModuleMaker
-# As of:  September 19, 2005
+# As of:  September 28, 2005
 use strict;
 local $^W = 1;
 use vars qw( $VERSION @ISA @EXPORT_OK );
-$VERSION = '0.41';
+$VERSION = '0.42';
 require Exporter;
 @ISA         = qw(Exporter);
 @EXPORT_OK   = qw(
@@ -21,6 +21,8 @@ require Exporter;
     _get_els
     _subclass_preparatory_tests
     _subclass_cleanup_tests
+    _save_pretesting_status
+    _restore_pretesting_status
 ); 
 use Carp;
 use Cwd;
@@ -219,42 +221,29 @@ sub constructor_present {
 
 sub failsafe {
     my ($caller, $argslistref, $pattern, $message) = @_;
-    my $odir = cwd();
     my ($tdir, $obj);
     $tdir = tempdir( CLEANUP => 1);
     ok(chdir $tdir, 'changed to temp directory for testing');
-    my $mmkr_dir_ref = _preexists_mmkr_directory();
-    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
-    ok( $mmkr_dir, "personal defaults directory now present on system");
-    my $pers_file = File::Spec->catfile(
-       qw| ExtUtils ModuleMaker Personal Defaults.pm |
-    );
-    my $pers_def_ref = 
-        _process_personal_defaults_file( $mmkr_dir, $pers_file );
     local $@ = undef;
     eval { $obj  = $caller->new (@$argslistref); };
     like($@, qr/$pattern/, $message);
-    _reprocess_personal_defaults_file($pers_def_ref);
-    ok(chdir $odir, 'changed back to original directory after testing');
-    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
-        "original presence/absence of .modulemaker directory restored");
 }
 
 sub licensetest {
     my ($caller, $license, $pattern) = @_;
-    my $odir = cwd();
+#    my $odir = cwd();
     my ($tdir, $mod);
     $tdir = tempdir( CLEANUP => 1);
     ok(chdir $tdir, "changed to temp directory for testing $license");
-    my $mmkr_dir_ref = _preexists_mmkr_directory();
-    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
-    ok( $mmkr_dir, "personal defaults directory now present on system");
+#    my $mmkr_dir_ref = _preexists_mmkr_directory();
+#    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
+#    ok( $mmkr_dir, "personal defaults directory now present on system");
 
-    my $pers_file = File::Spec->catfile(
-       qw| ExtUtils ModuleMaker Personal Defaults.pm |
-    );
-    my $pers_def_ref = 
-        _process_personal_defaults_file( $mmkr_dir, $pers_file );
+#    my $pers_file = File::Spec->catfile(
+#       qw| ExtUtils ModuleMaker Personal Defaults.pm |
+#    );
+#    my $pers_def_ref = 
+#        _process_personal_defaults_file( $mmkr_dir, $pers_file );
     ok($mod = $caller->new(
         NAME      => "Alpha::$license",
         LICENSE   => $license,
@@ -264,10 +253,10 @@ sub licensetest {
     ok(chdir "Alpha-$license", "changed to Alpha-$license directory");
     my $licensetext = read_file_string('LICENSE');
     like($licensetext, $pattern, "$license license has predicted content");
-    _reprocess_personal_defaults_file($pers_def_ref);
-    ok(chdir $odir, 'changed back to original directory after testing');
-    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
-        "original presence/absence of .modulemaker directory restored");
+#    _reprocess_personal_defaults_file($pers_def_ref);
+#    ok(chdir $odir, 'changed back to original directory after testing');
+#    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
+#        "original presence/absence of .modulemaker directory restored");
 }
 
 sub _process_personal_defaults_file {
@@ -470,6 +459,34 @@ sub _reveal_pm_files_under_mmkr_dir {
         rename $f, $new or croak "Unable to rename $f: $!";
         utime $hidden{$f}{atime}, $hidden{$f}{modtime}, $new;
     }
+}
+
+sub _save_pretesting_status {
+    my $mmkr_dir_ref = _preexists_mmkr_directory();
+    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
+    ok( $mmkr_dir, "personal defaults directory now present on system");
+    my $pers_file = "ExtUtils/ModuleMaker/Personal/Defaults.pm";
+    my $pers_def_ref = _process_personal_defaults_file(
+        $mmkr_dir, 
+#        "ExtUtils/ModuleMaker/Personal/Defaults.pm"
+        $pers_file,
+    );
+    return {
+        cwd             => cwd(),
+        mmkr_dir_ref    => $mmkr_dir_ref,
+        pers_def_ref    => $pers_def_ref,
+        mmkr_dir        => $mmkr_dir,   # needed in make_selections_defaults
+        pers_file       => $pers_file,  # needed in make_selections_defaults
+    }
+}
+
+sub _restore_pretesting_status {
+    my $statusref = shift;
+    _reprocess_personal_defaults_file($statusref->{pers_def_ref});
+    ok(chdir $statusref->{cwd},
+        "changed back to original directory after testing");
+    ok( _restore_mmkr_dir_status($statusref->{mmkr_dir_ref}),
+        "original presence/absence of .modulemaker directory restored");
 }
 
 1;

@@ -1,29 +1,20 @@
 # t/07_proxy.t
 use strict;
 local $^W = 1;
-use Test::More 
-tests =>  58;
-# qw(no_plan);
+use Test::More tests =>  57;
 use_ok( 'ExtUtils::ModuleMaker' );
-use_ok( 'Cwd');
-use_ok( 'ExtUtils::ModuleMaker::Utility', qw( 
-        _preexists_mmkr_directory
-        _make_mmkr_directory
-        _restore_mmkr_dir_status
-    )
-);
 use_ok( 'ExtUtils::ModuleMaker::Auxiliary', qw(
-        _process_personal_defaults_file 
-        _reprocess_personal_defaults_file 
+        _save_pretesting_status
+        _restore_pretesting_status
     )
 );
 
-my $odir = cwd();
+my $statusref = _save_pretesting_status();
 
 SKIP: {
     eval { require 5.006_001 and require Module::Build };
     skip "tests require File::Temp, core with 5.6, and require Module::Build", 
-        (58 - 4) if $@;
+        (57 - 2) if $@;
     use warnings;
     use_ok( 'File::Temp', qw| tempdir |);
     use ExtUtils::ModuleMaker::Auxiliary qw(
@@ -34,14 +25,6 @@ SKIP: {
     ok(chdir $tdir, 'changed to temp directory for testing');
 
     ########################################################################
-
-    my $mmkr_dir_ref = _preexists_mmkr_directory();
-    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
-    ok( $mmkr_dir, "personal defaults directory now present on system");
-
-    my $pers_file = "ExtUtils/ModuleMaker/Personal/Defaults.pm";
-    my $pers_def_ref = 
-        _process_personal_defaults_file( $mmkr_dir, $pers_file );
 
     my ($mod, $filetext);
     my $testmod = 'Delta';
@@ -126,12 +109,12 @@ SKIP: {
 
     six_file_tests(8, $testmod); # first arg is # entries in MANIFEST
  
-    _reprocess_personal_defaults_file($pers_def_ref);
 
-    ok(chdir $odir, 'changed back to original directory after testing');
-
-    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
-        "original presence/absence of .modulemaker directory restored");
-
+    ok(chdir $statusref->{cwd},
+        "changed back to original directory");
 } # end SKIP block
+
+END {
+    _restore_pretesting_status($statusref);
+}
 

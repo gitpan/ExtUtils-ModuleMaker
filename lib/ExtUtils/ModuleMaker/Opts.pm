@@ -1,9 +1,9 @@
 package ExtUtils::ModuleMaker::Opts;
-# as of 09-19-2005
+# as of 09-28-2005
 use strict;
 local $^W = 1;
 use vars qw( $VERSION );
-$VERSION = '0.41';
+$VERSION = '0.42';
 use Getopt::Std;
 use Carp;
 

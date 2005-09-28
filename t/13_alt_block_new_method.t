@@ -4,7 +4,7 @@
 use strict;
 local $^W = 1;
 use Test::More 
-tests =>  39;
+tests =>  40;
 # qw(no_plan);
 use_ok( 'ExtUtils::ModuleMaker' );
 use_ok( 'Cwd');
@@ -17,11 +17,18 @@ use_ok( 'ExtUtils::ModuleMaker::Auxiliary', qw(
 use_ok( 'File::Copy' );
 use Carp;
 
+my $odir = cwd();
+my $prepref = _subclass_preparatory_tests($odir);
+my $persref         = $prepref->{persref};
+my $pers_def_ref    = $prepref->{pers_def_ref};
+my %els1            = %{ $prepref->{initial_els_ref} };
+my $eumm_dir        = $prepref->{eumm_dir};
+my $mmkr_dir_ref    = $prepref->{mmkr_dir_ref};
 
 SKIP: {
     eval { require 5.006_001 };
     skip "tests require File::Temp, core with 5.6", 
-        (39 - 4) if $@;
+        (40 - 4) if $@;
     use warnings;
     use_ok( 'File::Temp', qw| tempdir |);
 
@@ -29,14 +36,6 @@ SKIP: {
 
     {   # Set:   Alt_block_new_method
 
-        my $odir = cwd();
-        my $prepref = _subclass_preparatory_tests($odir);
-
-        my $persref         = $prepref->{persref};
-        my $pers_def_ref    = $prepref->{pers_def_ref};
-        my %els1            = %{ $prepref->{initial_els_ref} };
-        my $eumm_dir        = $prepref->{eumm_dir};
-        my $mmkr_dir_ref    = $prepref->{mmkr_dir_ref};
 
         # real tests go here
 
@@ -85,17 +84,21 @@ ENDNEW
 
         # end of real tests
 
-        _subclass_cleanup_tests( {
-            persref         => $persref,
-            pers_def_ref    => $pers_def_ref,
-            eumm_dir        => $eumm_dir,
-            initial_els_ref => \%els1,
-            odir            => $odir,
-            mmkr_dir_ref    => $mmkr_dir_ref,
-        } );
 
     } # end of Set
+
+    ok(chdir $odir, "changed back to original directory");
+
 } # end SKIP block
 
-
+END {
+    _subclass_cleanup_tests( {
+        persref         => $persref,
+        pers_def_ref    => $pers_def_ref,
+        eumm_dir        => $eumm_dir,
+        initial_els_ref => \%els1,
+        odir            => $odir,
+        mmkr_dir_ref    => $mmkr_dir_ref,
+    } );
+}
 
