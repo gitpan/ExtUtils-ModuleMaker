@@ -1,10 +1,10 @@
 package ExtUtils::ModuleMaker::Utility;
-# as of 09-29-2005
+# as of 12-24-2005
 use strict;
 local $^W = 1;
 use base qw(Exporter);
 use vars qw( @EXPORT_OK $VERSION );
-$VERSION = '0.43';
+$VERSION = '0.44';
 @EXPORT_OK   = qw(
     _get_home_directory
     _get_mmkr_directory
@@ -175,7 +175,7 @@ sub _restore_mmkr_dir_status {
 
 =head2 C<_get_dir_and_file()>
 
-  Usage     : _get_dir_and_file($module) within generate_pm_file()
+  Usage     : _get_dir_and_file($module) within complete_build()
   Purpose   : Get directory and name for .pm file being processed
   Returns   : 2-element list: First $dir; Second: $file
   Argument  : $module: pointer to the module being built

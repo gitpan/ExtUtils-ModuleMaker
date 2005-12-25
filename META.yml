@@ -1,13 +1,13 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         ExtUtils-ModuleMaker
-version:      0.43
+version:      0.44
 version_from: lib/ExtUtils/ModuleMaker.pm
 installdirs:  site
 requires:
     File::Basename:                0
     File::Path:                    0
-    File::Temp:                    0
+    File::Save::Home:              0.03
     Getopt::Std:                   0
     Test::More:                    0.44
 

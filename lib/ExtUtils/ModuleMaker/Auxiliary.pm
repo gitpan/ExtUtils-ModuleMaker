@@ -1,10 +1,10 @@
 package ExtUtils::ModuleMaker::Auxiliary;
 # Contains test subroutines for distribution with ExtUtils::ModuleMaker
-# As of:  September 29, 2005
+# As of:  December 24, 2005
 use strict;
 local $^W = 1;
 use vars qw( $VERSION @ISA @EXPORT_OK );
-$VERSION = '0.43';
+$VERSION = '0.44';
 require Exporter;
 @ISA         = qw(Exporter);
 @EXPORT_OK   = qw(
@@ -35,10 +35,10 @@ use File::Temp qw| tempdir |;
 *like = *Test::More::like;
 *copy = *File::Copy::copy;
 *move = *File::Copy::move;
-use ExtUtils::ModuleMaker::Utility qw(
-    _preexists_mmkr_directory
-    _make_mmkr_directory
-    _restore_mmkr_dir_status
+use File::Save::Home qw(
+    get_subhome_directory_status
+    make_subhome_directory
+    restore_subhome_directory_status
 );
 
 =head1 NAME
@@ -231,19 +231,10 @@ sub failsafe {
 
 sub licensetest {
     my ($caller, $license, $pattern) = @_;
-#    my $odir = cwd();
     my ($tdir, $mod);
     $tdir = tempdir( CLEANUP => 1);
     ok(chdir $tdir, "changed to temp directory for testing $license");
-#    my $mmkr_dir_ref = _preexists_mmkr_directory();
-#    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
-#    ok( $mmkr_dir, "personal defaults directory now present on system");
 
-#    my $pers_file = File::Spec->catfile(
-#       qw| ExtUtils ModuleMaker Personal Defaults.pm |
-#    );
-#    my $pers_def_ref = 
-#        _process_personal_defaults_file( $mmkr_dir, $pers_file );
     ok($mod = $caller->new(
         NAME      => "Alpha::$license",
         LICENSE   => $license,
@@ -253,10 +244,6 @@ sub licensetest {
     ok(chdir "Alpha-$license", "changed to Alpha-$license directory");
     my $licensetext = read_file_string('LICENSE');
     like($licensetext, $pattern, "$license license has predicted content");
-#    _reprocess_personal_defaults_file($pers_def_ref);
-#    ok(chdir $odir, 'changed back to original directory after testing');
-#    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
-#        "original presence/absence of .modulemaker directory restored");
 }
 
 sub _process_personal_defaults_file {
@@ -317,8 +304,8 @@ sub _subclass_preparatory_tests {
     my $tdir = tempdir( CLEANUP => 1);
     ok(chdir $tdir, 'changed to temp directory for testing');
 
-    my $mmkr_dir_ref = _preexists_mmkr_directory();
-    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
+    my $mmkr_dir_ref = get_subhome_directory_status(".modulemaker");
+    my $mmkr_dir = make_subhome_directory($mmkr_dir_ref);
     ok($mmkr_dir, "home/.modulemaker directory now present on system");
     my $eumm = File::Spec->catfile( qw| ExtUtils ModuleMaker | );
     my $eumm_dir = File::Spec->catfile( $mmkr_dir, $eumm );
@@ -396,7 +383,7 @@ sub _subclass_cleanup_tests {
 
     ok(chdir $odir, 'changed back to original directory after testing');
 
-    ok( _restore_mmkr_dir_status($mmkr_dir_ref),
+    ok( restore_subhome_directory_status($mmkr_dir_ref),
         "original presence/absence of .modulemaker directory restored");
 }
 
@@ -462,13 +449,12 @@ sub _reveal_pm_files_under_mmkr_dir {
 }
 
 sub _save_pretesting_status {
-    my $mmkr_dir_ref = _preexists_mmkr_directory();
-    my $mmkr_dir = _make_mmkr_directory($mmkr_dir_ref);
+    my $mmkr_dir_ref = get_subhome_directory_status(".modulemaker");
+    my $mmkr_dir = make_subhome_directory($mmkr_dir_ref);
     ok( $mmkr_dir, "personal defaults directory now present on system");
     my $pers_file = "ExtUtils/ModuleMaker/Personal/Defaults.pm";
     my $pers_def_ref = _process_personal_defaults_file(
         $mmkr_dir, 
-#        "ExtUtils/ModuleMaker/Personal/Defaults.pm"
         $pers_file,
     );
     return {
@@ -485,7 +471,7 @@ sub _restore_pretesting_status {
     _reprocess_personal_defaults_file($statusref->{pers_def_ref});
     ok(chdir $statusref->{cwd},
         "changed back to original directory after testing");
-    ok( _restore_mmkr_dir_status($statusref->{mmkr_dir_ref}),
+    ok( restore_subhome_directory_status($statusref->{mmkr_dir_ref}),
         "original presence/absence of .modulemaker directory restored");
 }
 
