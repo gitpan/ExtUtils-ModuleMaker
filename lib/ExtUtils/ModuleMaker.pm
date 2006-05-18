@@ -1,9 +1,10 @@
 package ExtUtils::ModuleMaker;
+#$Id: ModuleMaker.pm 976 2006-05-17 23:20:08Z jimk $
 use strict;
 local $^W = 1;
 BEGIN {
     use vars qw( $VERSION @ISA );
-    $VERSION = 0.46;
+    $VERSION = 0.47;
     use base qw(
         ExtUtils::ModuleMaker::Defaults
         ExtUtils::ModuleMaker::Initializers
@@ -402,8 +403,8 @@ Inside a Perl program:
 
 =head1 VERSION
 
-This document references version 0.46 of ExtUtils::ModuleMaker, released
-to CPAN on April 29, 2006.
+This document references version 0.47 of ExtUtils::ModuleMaker, released
+to CPAN on May 17,2006.
 
 =head1 DESCRIPTION
 
@@ -609,6 +610,17 @@ Boolean value which, if true, includes a F<LICENSE> file in the distribution.
 
 Boolean value which, if true, includes a F<scripts/> directory (at the same
 level as F<lib/> or F<t/>).  (Default is on.)
+
+=item * INCLUDE_WARNINGS
+
+Boolean value which, if true, inserts C<use warnings;> in all Perl modules
+created by use of this module.  (Default is off.)
+
+=item * INCLUDE_ID_LINE
+
+Boolean value which, if true, inserts C<#$Id: ModuleMaker.pm 976 2006-05-17 23:20:08Z jimk $> in all Perl modules
+created by use of this module for the purpose of inserting a Subversion file
+'Id' string.  (Default is off.)
 
 =back
 

@@ -1,8 +1,8 @@
 package ExtUtils::ModuleMaker::Defaults;
-# as of 04-29-2006
+#$Id: Defaults.pm 975 2006-05-15 02:38:45Z jimk $
 use strict;
 use vars qw( $VERSION );
-$VERSION = 0.46;
+$VERSION = 0.47;
 
 my $usage = <<ENDOFUSAGE;
 
@@ -43,6 +43,8 @@ my %default_values = (
         INCLUDE_LICENSE                     => 1,
         INCLUDE_SCRIPTS_DIRECTORY           => 1,
         INCLUDE_FILE_IN_PM                  => 0,
+        INCLUDE_ID_LINE                     => 0,
+        INCLUDE_WARNINGS                    => 0,
 );
 
 sub default_values {
