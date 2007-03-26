@@ -1,10 +1,10 @@
 package ExtUtils::ModuleMaker::Auxiliary;
-#$Id: Auxiliary.pm 975 2006-05-15 02:38:45Z jimk $
+#$Id: Auxiliary.pm 1006 2006-06-02 01:36:45Z jimk $
 use strict;
 # Contains test subroutines for distribution with ExtUtils::ModuleMaker
 local $^W = 1;
 use vars qw( $VERSION @ISA @EXPORT_OK );
-$VERSION = 0.47;
+$VERSION = 0.48;
 require Exporter;
 @ISA         = qw(Exporter);
 @EXPORT_OK   = qw(
@@ -61,10 +61,6 @@ suites for distributions which subclass ExtUtils::ModuleMaker.
     Used:       To see whether text of files such as README, Makefile.PL,
                 etc. was created correctly by returning a string against which
                 a pattern can be matched.
-
-=head1 SEE ALSO
-
-F<ExtUtils::ModuleMaker>.
 
 =cut
 
@@ -474,6 +470,12 @@ sub _restore_pretesting_status {
     ok( restore_subhome_directory_status($statusref->{mmkr_dir_ref}),
         "original presence/absence of .modulemaker directory restored");
 }
+
+=head1 SEE ALSO
+
+F<ExtUtils::ModuleMaker>.
+
+=cut
 
 1;
 

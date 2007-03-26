@@ -1,15 +1,18 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         ExtUtils-ModuleMaker
-version:      0.47
-version_from: lib/ExtUtils/ModuleMaker.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                ExtUtils-ModuleMaker
+version:             0.48
+abstract:            Better than h2xs for creating modules
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.31
+distribution_type:   module
+requires:     
     File::Basename:                0
     File::Path:                    0
     File::Save::Home:              0.03
     Getopt::Std:                   0
     Test::More:                    0.44
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - James E Keenan (jkeenan@cpan.org)
