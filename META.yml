@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                ExtUtils-ModuleMaker
-version:             0.48
+version:             0.49
 abstract:            Better than h2xs for creating modules
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.31

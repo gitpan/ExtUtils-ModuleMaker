@@ -1,8 +1,8 @@
 package ExtUtils::ModuleMaker::Defaults;
-#$Id: Defaults.pm 975 2006-05-15 02:38:45Z jimk $
+#$Id: Defaults.pm 1153 2007-03-28 00:06:01Z jimk $
 use strict;
 use vars qw( $VERSION );
-$VERSION = 0.48;
+$VERSION = 0.49;
 
 my $usage = <<ENDOFUSAGE;
 
