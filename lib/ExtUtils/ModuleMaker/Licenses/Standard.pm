@@ -1,12 +1,12 @@
 package ExtUtils::ModuleMaker::Licenses::Standard;
-#$Id: Standard.pm 1153 2007-03-28 00:06:01Z jimk $
+#$Id$
 use strict;
 local $^W = 1;
 
 BEGIN {
     use base qw(Exporter);
     use vars qw( @EXPORT_OK $VERSION );
-    $VERSION = 0.51;
+    $VERSION = 0.52;
     @EXPORT_OK   = qw(Get_Standard_License Verify_Standard_License);
 #    $VERSION     : taken from lib/ExtUtils/ModuleMaker.pm
 }

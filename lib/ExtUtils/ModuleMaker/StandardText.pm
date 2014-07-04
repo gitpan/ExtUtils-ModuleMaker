@@ -1,9 +1,9 @@
 package ExtUtils::ModuleMaker::StandardText;
-#$Id: StandardText.pm 1153 2007-03-28 00:06:01Z jimk $
+#$Id$
 use strict;
 local $^W = 1;
 use vars qw ( $VERSION );
-$VERSION = 0.51;
+$VERSION = 0.52;
 use ExtUtils::ModuleMaker::Licenses::Standard qw(
     Get_Standard_License
     Verify_Standard_License

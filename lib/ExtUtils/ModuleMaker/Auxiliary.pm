@@ -1,10 +1,9 @@
 package ExtUtils::ModuleMaker::Auxiliary;
-#$Id: Auxiliary.pm 1153 2007-03-28 00:06:01Z jimk $
 use strict;
 # Contains test subroutines for distribution with ExtUtils::ModuleMaker
 local $^W = 1;
 use vars qw( $VERSION @ISA @EXPORT_OK );
-$VERSION = 0.51;
+$VERSION = 0.52;
 require Exporter;
 @ISA         = qw(Exporter);
 @EXPORT_OK   = qw(
